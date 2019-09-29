@@ -16,20 +16,10 @@ version = GitRepository(rootDir).generateCalVer()
 
 gradlePlugin {
     plugins {
-        create("androidCpp") {
-            id = "dev.anatolii.cpp.android.library"
+        create("androidClang") {
+            id = "dev.anatolii.cpp.android.clang"
             group = id
-            implementationClass = "dev.anatolii.gradle.cpp.android.AndroidCppLibraryPlugin"
-        }
-        create("crossPlatformLibrary") {
-            id = "dev.anatolii.cpp.crossplatform.library"
-            group = id
-            implementationClass = "dev.anatolii.gradle.cpp.crossplatform.CrossPlatformCppLibraryPlugin"
-        }
-        create("crossPlatformApplication") {
-            id = "dev.anatolii.cpp.crossplatform.application"
-            group = id
-            implementationClass = "dev.anatolii.gradle.cpp.crossplatform.CrossPlatformCppApplicationPlugin"
+            implementationClass = "dev.anatolii.gradle.cpp.android.AndroidClangCompilerPlugin"
         }
     }
 }

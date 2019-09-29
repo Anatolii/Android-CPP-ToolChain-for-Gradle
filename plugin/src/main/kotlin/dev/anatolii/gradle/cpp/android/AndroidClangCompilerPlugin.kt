@@ -9,6 +9,7 @@ import org.gradle.api.Project
 import org.gradle.api.internal.file.FileResolver
 import org.gradle.internal.operations.BuildOperationExecutor
 import org.gradle.internal.os.OperatingSystem
+import org.gradle.internal.os.OperatingSystem.current
 import org.gradle.internal.reflect.Instantiator
 import org.gradle.internal.service.ServiceRegistry
 import org.gradle.internal.work.WorkerLeaseService
@@ -45,8 +46,8 @@ open class AndroidClangCompilerPlugin : Plugin<Project> {
                 val compilerOutputFileNamingSchemeFactory = serviceRegistry.get(CompilerOutputFileNamingSchemeFactory::class.java)
                 val buildOperationExecutor = serviceRegistry.get(BuildOperationExecutor::class.java)
                 val workerLeaseService = serviceRegistry.get(WorkerLeaseService::class.java)
-                val operatingSystem = OperatingSystem.current()
-                val llvmToolchainFile = File(ndkDirectory, "toolchains/llvm/prebuilt/${operatingSystem.nativePrefix}-x86_64")
+                val operatingSystem = current()
+                val llvmToolchainFile = operatingSystem.androidLlvmToolchainLocationInsideNDK(ndkDirectory)
 
                 toolChainRegistry.registerFactory(AndroidClang::class.java) { name ->
                     instantiator.newInstance(
@@ -65,6 +66,17 @@ open class AndroidClangCompilerPlugin : Plugin<Project> {
                     )
                 }
                 toolChainRegistry.registerDefaultToolChain(AndroidClangToolChain.DEFAULT_NAME, AndroidClang::class.java)
+            }
+
+            private fun OperatingSystem.androidLlvmToolchainLocationInsideNDK(ndkLocation: File): File {
+                return when {
+                    isMacOsX -> nativePrefix
+                    isLinux -> familyName
+                    isWindows -> familyName
+                    else -> throw RuntimeException("Unsupported operating system: ${this.name}")
+                }.let {
+                    "toolchains/llvm/prebuilt/${it}-x86_64"
+                }.let { File(ndkLocation, it) }
             }
         }
     }

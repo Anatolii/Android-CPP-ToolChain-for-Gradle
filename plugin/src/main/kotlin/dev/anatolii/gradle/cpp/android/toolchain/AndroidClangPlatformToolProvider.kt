@@ -43,6 +43,7 @@ import org.gradle.nativeplatform.toolchain.internal.tools.CommandLineToolSearchR
 import org.gradle.nativeplatform.toolchain.internal.tools.ToolSearchPath
 import org.gradle.platform.base.internal.toolchain.SearchResult
 import org.gradle.process.internal.ExecActionFactory
+import java.io.File
 
 class AndroidClangPlatformToolProvider(buildOperationExecutor: BuildOperationExecutor,
                                        targetOperatingSystem: OperatingSystemInternal,
@@ -61,6 +62,24 @@ class AndroidClangPlatformToolProvider(buildOperationExecutor: BuildOperationExe
                 ToolType.CPP_COMPILER to "c++"
         )
     }
+
+    override fun getExecutableName(executablePath: String): String = executablePath
+
+    override fun getSharedLibraryName(libraryPath: String): String =
+            File(super.getSharedLibraryName(libraryPath))
+                    .let { File(it.parentFile, "${it.nameWithoutExtension}.so") }
+                    .path
+
+    override fun getObjectFileExtension(): String = ".o"
+
+    override fun getSharedLibraryLinkFileName(libraryPath: String): String {
+        return getSharedLibraryName(libraryPath)
+    }
+
+    override fun getStaticLibraryName(libraryPath: String): String =
+            File(super.getStaticLibraryName(libraryPath))
+                    .let { File(it.parentFile, "${it.nameWithoutExtension}.a") }
+                    .path
 
     override fun locateTool(compilerType: ToolType): CommandLineToolSearchResult {
         return toolSearchPath.locate(compilerType, toolRegistry.getTool(compilerType).executable)
