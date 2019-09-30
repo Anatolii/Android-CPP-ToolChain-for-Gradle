@@ -13,12 +13,12 @@ dependencies {
 }
 
 version = GitRepository(rootDir).generateCalVer()
+group = "dev.anatolii.cpp.android"
 
 gradlePlugin {
     plugins {
         create("androidClang") {
             id = "dev.anatolii.cpp.android.clang"
-            group = id
             implementationClass = "dev.anatolii.gradle.cpp.android.AndroidClangCompilerPlugin"
         }
     }

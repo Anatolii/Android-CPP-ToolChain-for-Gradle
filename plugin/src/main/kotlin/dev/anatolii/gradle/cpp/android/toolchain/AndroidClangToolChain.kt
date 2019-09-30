@@ -51,7 +51,7 @@ open class AndroidClangToolChain(
 ), AndroidClang {
 
     companion object {
-        const val DEFAULT_NAME = "AndroidClang"
+        const val NAME = "Android Clang"
     }
 
 

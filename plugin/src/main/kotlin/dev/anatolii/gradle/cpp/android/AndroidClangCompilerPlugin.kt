@@ -13,71 +13,63 @@ import org.gradle.internal.os.OperatingSystem.current
 import org.gradle.internal.reflect.Instantiator
 import org.gradle.internal.service.ServiceRegistry
 import org.gradle.internal.work.WorkerLeaseService
-import org.gradle.model.Defaults
-import org.gradle.model.RuleSource
 import org.gradle.nativeplatform.internal.CompilerOutputFileNamingSchemeFactory
 import org.gradle.nativeplatform.plugins.NativeComponentPlugin
+import org.gradle.nativeplatform.toolchain.NativeToolChainRegistry
 import org.gradle.nativeplatform.toolchain.internal.NativeToolChainRegistryInternal
 import org.gradle.nativeplatform.toolchain.internal.tools.ToolSearchPath
 import org.gradle.process.internal.ExecActionFactory
 import java.io.File
+import javax.inject.Inject
 
-open class AndroidClangCompilerPlugin : Plugin<Project> {
-
-    companion object {
-        lateinit var ndkDirectory: File
-    }
+open class AndroidClangCompilerPlugin @Inject constructor(
+        private val serviceRegistry: ServiceRegistry
+) : Plugin<Project> {
 
     override fun apply(project: Project) {
         project.pluginManager.apply(NativeComponentPlugin::class.java)
-        ndkDirectory = project.findNdkDirectory()
+        val ndkDirectory = project.findNdkDirectory()
+
+        val instantiator = serviceRegistry.get(Instantiator::class.java)
+        val fileResolver = serviceRegistry.get(FileResolver::class.java)
+        val execActionFactory = serviceRegistry.get(ExecActionFactory::class.java)
+        val compilerOutputFileNamingSchemeFactory = serviceRegistry.get(CompilerOutputFileNamingSchemeFactory::class.java)
+        val buildOperationExecutor = serviceRegistry.get(BuildOperationExecutor::class.java)
+        val workerLeaseService = serviceRegistry.get(WorkerLeaseService::class.java)
+        val operatingSystem = current()
+        val llvmToolchainFile = operatingSystem.androidLlvmToolchainLocationInsideNDK(ndkDirectory)
+
+        val toolChainRegistry = project.extensions.getByType(NativeToolChainRegistry::class.java)
+
+        toolChainRegistry.registerFactory(AndroidClang::class.java) { name ->
+            instantiator.newInstance(
+                    AndroidClangToolChain::class.java,
+                    name,
+                    llvmToolchainFile,
+                    buildOperationExecutor,
+                    operatingSystem,
+                    fileResolver,
+                    execActionFactory,
+                    compilerOutputFileNamingSchemeFactory,
+                    instantiator,
+                    workerLeaseService,
+                    AndroidClangMetaDataProvider(execActionFactory, ndkDirectory),
+                    ToolSearchPath(operatingSystem)
+            )
+        }
+        if(toolChainRegistry is NativeToolChainRegistryInternal)
+            toolChainRegistry.registerDefaultToolChain(AndroidClangToolChain.NAME, AndroidClang::class.java)
+        else toolChainRegistry.register(AndroidClangToolChain.NAME, AndroidClang::class.java)
     }
 
-    @Suppress("unused")
-    class Rules : RuleSource() {
-        companion object {
-            @Defaults
-            @JvmStatic
-            fun addToolChain(toolChainRegistry: NativeToolChainRegistryInternal, serviceRegistry: ServiceRegistry) {
-
-                val instantiator = serviceRegistry.get(Instantiator::class.java)
-                val fileResolver = serviceRegistry.get(FileResolver::class.java)
-                val execActionFactory = serviceRegistry.get(ExecActionFactory::class.java)
-                val compilerOutputFileNamingSchemeFactory = serviceRegistry.get(CompilerOutputFileNamingSchemeFactory::class.java)
-                val buildOperationExecutor = serviceRegistry.get(BuildOperationExecutor::class.java)
-                val workerLeaseService = serviceRegistry.get(WorkerLeaseService::class.java)
-                val operatingSystem = current()
-                val llvmToolchainFile = operatingSystem.androidLlvmToolchainLocationInsideNDK(ndkDirectory)
-
-                toolChainRegistry.registerFactory(AndroidClang::class.java) { name ->
-                    instantiator.newInstance(
-                            AndroidClangToolChain::class.java,
-                            name,
-                            llvmToolchainFile,
-                            buildOperationExecutor,
-                            operatingSystem,
-                            fileResolver,
-                            execActionFactory,
-                            compilerOutputFileNamingSchemeFactory,
-                            instantiator,
-                            workerLeaseService,
-                            AndroidClangMetaDataProvider(execActionFactory, ndkDirectory),
-                            ToolSearchPath(operatingSystem)
-                    )
-                }
-                toolChainRegistry.registerDefaultToolChain(AndroidClangToolChain.DEFAULT_NAME, AndroidClang::class.java)
-            }
-
-            private fun OperatingSystem.androidLlvmToolchainLocationInsideNDK(ndkLocation: File): File {
-                return when {
-                    isMacOsX -> nativePrefix
-                    isLinux -> familyName
-                    isWindows -> familyName
-                    else -> throw RuntimeException("Unsupported operating system: ${this.name}")
-                }.let {
-                    "toolchains/llvm/prebuilt/${it}-x86_64"
-                }.let { File(ndkLocation, it) }
-            }
-        }
+    private fun OperatingSystem.androidLlvmToolchainLocationInsideNDK(ndkLocation: File): File {
+        return when {
+            isMacOsX -> nativePrefix
+            isLinux -> familyName
+            isWindows -> familyName
+            else -> throw RuntimeException("Unsupported operating system: ${this.name}")
+        }.let {
+            "toolchains/llvm/prebuilt/${it}-x86_64"
+        }.let { File(ndkLocation, it) }
     }
 }
