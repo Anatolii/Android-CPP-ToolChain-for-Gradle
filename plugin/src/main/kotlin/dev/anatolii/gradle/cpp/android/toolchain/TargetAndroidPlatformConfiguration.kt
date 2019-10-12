@@ -7,9 +7,4 @@ interface TargetAndroidPlatformConfiguration {
      * Returns whether a platform is supported or not.
      */
     fun supportsPlatform(targetPlatform: NativePlatformInternal): Boolean
-
-    /**
-     * applies a platform specific toolchain configuration
-     */
-    fun apply(platformToolChain: DefaultAndroidClangPlatformToolChain)
 }

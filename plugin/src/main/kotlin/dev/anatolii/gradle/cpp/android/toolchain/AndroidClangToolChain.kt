@@ -6,14 +6,12 @@ import dev.anatolii.gradle.cpp.android.metadata.AndroidClangMetaDataProvider
 import dev.anatolii.gradle.cpp.android.tool.NdkCommandLineToolConfiguration
 import org.gradle.api.Action
 import org.gradle.api.internal.file.FileResolver
-import org.gradle.internal.Actions
 import org.gradle.internal.operations.BuildOperationExecutor
 import org.gradle.internal.os.OperatingSystem
 import org.gradle.internal.reflect.Instantiator
 import org.gradle.internal.work.WorkerLeaseService
 import org.gradle.nativeplatform.internal.CompilerOutputFileNamingSchemeFactory
 import org.gradle.nativeplatform.platform.internal.NativePlatformInternal
-import org.gradle.nativeplatform.toolchain.NativePlatformToolChain
 import org.gradle.nativeplatform.toolchain.internal.ExtendableToolChain
 import org.gradle.nativeplatform.toolchain.internal.NativeLanguage
 import org.gradle.nativeplatform.toolchain.internal.PlatformToolProvider
@@ -29,15 +27,13 @@ import org.gradle.platform.base.internal.toolchain.ToolChainAvailability
 import org.gradle.process.internal.ExecActionFactory
 import org.slf4j.LoggerFactory
 import java.io.File
-import java.util.*
-import javax.annotation.Nullable
 
 open class AndroidClangToolChain(
         name: String,
         private val llvmToolchainFile: File,
         buildOperationExecutor: BuildOperationExecutor,
-        private val hostOS: OperatingSystem,
-        private val fileResolver: FileResolver,
+        hostOS: OperatingSystem,
+        fileResolver: FileResolver,
         private val execActionFactory: ExecActionFactory,
         private val compilerOutputFileNamingSchemeFactory: CompilerOutputFileNamingSchemeFactory,
         private val instantiator: Instantiator,
@@ -52,6 +48,7 @@ open class AndroidClangToolChain(
 
     companion object {
         const val NAME = "Android Clang"
+        private val LOGGER = LoggerFactory.getLogger(AndroidClangToolChain::class.java)
     }
 
 
@@ -62,7 +59,7 @@ open class AndroidClangToolChain(
                 AndroidInfo.x86,
                 AndroidInfo.x86_64)
                 .map { arch ->
-                    (21..29).map { api ->
+                    (28..29).map { api ->
                         AndroidInfo(api, arch)
                     }
                 }.flatten()
@@ -72,83 +69,17 @@ open class AndroidClangToolChain(
         return "AndroidClang"
     }
 
-    private val LOGGER = LoggerFactory.getLogger(AndroidClangToolChain::class.java)
-    private val platformConfigs = ArrayList<TargetAndroidPlatformConfiguration>()
+    private val platformConfigs = mutableMapOf<String, AndroidInfo>()
     private val toolProviders = hashMapOf<NativePlatformInternal, PlatformToolProvider?>()
-    private var configInsertLocation: Int = 0
-
 
     init {
-        configInsertLocation = 0
-
-        val llvmToolchainPath = llvmToolchainFile.invariantSeparatorsPath
-
         androidInfoVariants().forEach { info ->
-            target(info.platformName) {
-                val m32args = Action<MutableList<String>> {
-                    val args = mutableListOf<String>()
-                    args.add("-v")
-                    args.add("--target=${info.executablePrefix}")
-                    args.add("-fno-addrsig")
-                    args.add("-isysroot")
-                    args.add("${llvmToolchainPath}/sysroot")
-                    args.add("-isystem")
-                    args.add("${llvmToolchainPath}/include")
-                    args.add("-isystem")
-                    args.add("${llvmToolchainPath}/sysroot/usr/include")
-                    args.add("-isystem")
-                    args.add("${llvmToolchainPath}/sysroot/usr/include/${info.sysrootIncludeFolderName}")
-                    args.add("-isystem")
-                    args.add("${llvmToolchainPath}/sysroot/usr/include/c++/v1")
-                    addAll(0, args)
-                }
-                getCppCompiler().withArguments(m32args)
-                getcCompiler().withArguments(m32args)
-                getLinker().withArguments(m32args)
-                getAssembler().withArguments(m32args)
-                path(File(llvmToolchainFile, "${info.sysrootIncludeFolderName}/bin"))
-            }
+            platformConfigs[info.platformName] = info
         }
-        path(File(llvmToolchainFile, "bin"))
     }
 
-    protected fun locate(tool: NdkCommandLineToolConfiguration): CommandLineToolSearchResult {
+    private fun locate(tool: NdkCommandLineToolConfiguration): CommandLineToolSearchResult {
         return toolSearchPath.locate(tool.toolType, tool.executable)
-    }
-
-    fun getPath(): List<File> {
-        return toolSearchPath.path
-    }
-
-    fun path(vararg pathEntries: Any) {
-        for (path in pathEntries) {
-            toolSearchPath.path(resolve(path))
-        }
-    }
-
-    fun target(platformName: String) {
-        target(platformName, Actions.doNothing<NativePlatformToolChain>())
-    }
-
-    fun target(platformName: String, action: Action<in AndroidClangPlatformToolChain>) {
-        target(DefaultTargetPlatformConfiguration(listOf(platformName), action))
-    }
-
-    fun target(platformNames: List<String>, action: Action<in AndroidClangPlatformToolChain>) {
-        target(DefaultTargetPlatformConfiguration(platformNames, action))
-    }
-
-    private fun target(targetPlatformConfiguration: TargetAndroidPlatformConfiguration) {
-        platformConfigs.add(configInsertLocation, targetPlatformConfiguration)
-        configInsertLocation++
-    }
-
-    fun setTargets(vararg platformNames: String) {
-        platformConfigs.clear()
-        configInsertLocation = 0
-        for (platformName in platformNames) {
-            target(platformName)
-        }
     }
 
     override fun select(targetPlatform: NativePlatformInternal): PlatformToolProvider {
@@ -156,10 +87,10 @@ open class AndroidClangToolChain(
     }
 
     private fun getProviderForPlatform(targetPlatform: NativePlatformInternal): PlatformToolProvider {
-        var toolProvider: PlatformToolProvider? = toolProviders.get(targetPlatform)
+        var toolProvider: PlatformToolProvider? = toolProviders[targetPlatform]
         if (toolProvider == null) {
             toolProvider = createPlatformToolProvider(targetPlatform)
-            toolProviders.put(targetPlatform, toolProvider)
+            toolProviders[targetPlatform] = toolProvider
         }
         return toolProvider
     }
@@ -204,12 +135,32 @@ open class AndroidClangToolChain(
     }
 
     private fun createPlatformToolProvider(targetPlatform: NativePlatformInternal): PlatformToolProvider {
-        val targetPlatformConfigurationConfiguration = getPlatformConfiguration(targetPlatform)
+        val androidInfo = platformConfigs[targetPlatform.architecture.name]
                 ?: return UnsupportedPlatformToolProvider(targetPlatform.operatingSystem, String.format("Don't know how to build for %s.", targetPlatform.displayName))
+        toolSearchPath.path(File(llvmToolchainFile, "bin"))
+        toolSearchPath.path(File(llvmToolchainFile, "${androidInfo.toolsPrefix}/bin"))
 
         val configurableToolChain = instantiator.newInstance(DefaultAndroidClangPlatformToolChain::class.java, targetPlatform)
         addDefaultTools(configurableToolChain)
-        targetPlatformConfigurationConfiguration.apply(configurableToolChain)
+        val sysrootDir = File(llvmToolchainFile, "sysroot")
+        configurableToolChain.getTools().onEach {
+            it.withArguments {
+                add("-stdlib=libc++")
+                add("--target=${androidInfo.targetPrefix}${androidInfo.api}")
+                add("-fno-addrsig")
+                add("-isysroot")
+                add(sysrootDir.path)
+                add("-isystem")
+                add(File(sysrootDir, "usr/include").path)
+                add("-isystem")
+                add(File(sysrootDir, "usr/include/${androidInfo.toolsPrefix}").path)
+                add("-isystem")
+                add(File(sysrootDir, "usr/include/c++/v1").path)
+                add("-isystem")
+                add(File(llvmToolchainFile, "include/c++/4.9.x").path)
+            }
+        }
+
         configureActions.execute(configurableToolChain)
 
         val result = ToolChainAvailability()
@@ -230,7 +181,7 @@ open class AndroidClangToolChain(
 
     }
 
-    protected fun initTools(platformToolChain: DefaultAndroidClangPlatformToolChain) {
+    private fun initTools(platformToolChain: DefaultAndroidClangPlatformToolChain) {
         // Attempt to determine whether the compiler is the correct implementation
         for (tool in platformToolChain.getCompilers()) {
             val compiler = locate(tool)
@@ -253,35 +204,9 @@ open class AndroidClangToolChain(
         toolChain.add(instantiator.newInstance(NdkCommandLineToolConfiguration::class.java, ToolType.CPP_COMPILER, "clang++"))
         toolChain.add(instantiator.newInstance(NdkCommandLineToolConfiguration::class.java, ToolType.LINKER, "clang++"))
         toolChain.add(instantiator.newInstance(NdkCommandLineToolConfiguration::class.java, ToolType.STATIC_LIB_ARCHIVER, "ar"))
-        toolChain.add(instantiator.newInstance(NdkCommandLineToolConfiguration::class.java, ToolType.OBJECTIVECPP_COMPILER, "clang++"))
-        toolChain.add(instantiator.newInstance(NdkCommandLineToolConfiguration::class.java, ToolType.OBJECTIVEC_COMPILER, "clang"))
         toolChain.add(instantiator.newInstance(NdkCommandLineToolConfiguration::class.java, ToolType.ASSEMBLER, "clang"))
         toolChain.add(instantiator.newInstance(NdkCommandLineToolConfiguration::class.java, ToolType.SYMBOL_EXTRACTOR, "objcopy"))
         toolChain.add(instantiator.newInstance(NdkCommandLineToolConfiguration::class.java, ToolType.STRIPPER, "strip"))
-    }
-
-    @Nullable
-    protected fun getPlatformConfiguration(targetPlatform: NativePlatformInternal): TargetAndroidPlatformConfiguration? {
-        for (platformConfig in platformConfigs) {
-            if (platformConfig.supportsPlatform(targetPlatform)) {
-                return platformConfig
-            }
-        }
-        return null
-    }
-
-    private class DefaultTargetPlatformConfiguration(//TODO this should be a container of platforms
-            private val platformNames: Collection<String>,
-            private val configurationAction: Action<in AndroidClangPlatformToolChain>
-    ) : TargetAndroidPlatformConfiguration {
-
-        override fun supportsPlatform(targetPlatform: NativePlatformInternal): Boolean {
-            return platformNames.contains(targetPlatform.architecture.name)
-        }
-
-        override fun apply(platformToolChain: DefaultAndroidClangPlatformToolChain) {
-            configurationAction.execute(platformToolChain)
-        }
     }
 
     private class CompilerMetaDataProviderWithDefaultArgs(private val compilerProbeArgs: List<String>, private val delegate: CompilerMetaDataProvider<AndroidClangMetaData>) : CompilerMetaDataProvider<AndroidClangMetaData> {

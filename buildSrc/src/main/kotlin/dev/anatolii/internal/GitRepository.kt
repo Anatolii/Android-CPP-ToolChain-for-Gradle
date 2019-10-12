@@ -1,23 +1,26 @@
-import org.eclipse.jgit.lib.Repository
+import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.revwalk.RevCommit
-import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import java.io.File
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 
 class GitRepository(repositoryDir: File, private val masterBranchName: String = "master") {
-    private val repository: Repository = FileRepositoryBuilder.create(File(repositoryDir, ".git"))
+    private val git: Git = Git.open(repositoryDir)
+
+    protected fun finalize() {
+        git.close()
+    }
 
     fun generateCalVer(): String =
             listOfNotNull(
-                    repository.branch.takeIf { isOnMasterBranch().not() },
+                    git.repository.branch.takeIf { isOnMasterBranch().not() },
                     lastCommitTimestamp()?.fullPaddedDateTime()
-            ).joinToString(separator = "-").replace(oldChar = '/', newChar = '_')
+            ).joinToString(separator = "-").replace(oldChar = '/', newChar = '-')
 
     private fun lastCommit(): RevCommit? {
-        return repository.refDatabase.refs.find { it.name == repository.fullBranch }?.objectId
-                ?.let { repository.parseCommit(it) }
+        return git.repository.refDatabase.refs.find { it.name == git.repository.fullBranch }?.objectId
+                ?.let { git.repository.parseCommit(it) }
     }
 
     private fun lastCommitTimestamp(): LocalDateTime? {
@@ -27,7 +30,7 @@ class GitRepository(repositoryDir: File, private val masterBranchName: String = 
     }
 
 
-    private fun isOnMasterBranch() = repository.branch == masterBranchName
+    private fun isOnMasterBranch() = git.repository.branch == masterBranchName
 }
 
 

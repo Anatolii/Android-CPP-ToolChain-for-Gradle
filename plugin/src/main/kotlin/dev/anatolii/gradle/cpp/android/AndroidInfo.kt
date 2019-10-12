@@ -11,11 +11,11 @@ data class AndroidInfo(val api: Int, val arch: String) {
 
     val platformName = "android${api}_$arch"
 
-    val executablePrefix = ("aarch64".takeIf { arch == armv8 } ?: "armv7a".takeIf { arch == armv7 }
+    val targetPrefix = ("aarch64".takeIf { arch == armv8 } ?: "armv7a".takeIf { arch == armv7 }
     ?: "i686".takeIf { arch == x86 } ?: x86_64) +
-            "-linux-android" + ("eabi".takeIf { arch == armv7 } ?: "") + api
+            "-linux-android" + ("eabi".takeIf { arch == armv7 } ?: "")
 
-    val sysrootIncludeFolderName = ("aarch64".takeIf { arch == armv8 } ?: "arm".takeIf { arch == armv7 }
+    val toolsPrefix = ("aarch64".takeIf { arch == armv8 } ?: "arm".takeIf { arch == armv7 }
     ?: "i686".takeIf { arch == x86 } ?: x86_64) +
             "-linux-android" + ("eabi".takeIf { arch == armv7 } ?: "")
 
