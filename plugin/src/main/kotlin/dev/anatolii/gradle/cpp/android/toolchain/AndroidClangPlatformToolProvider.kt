@@ -7,10 +7,8 @@ import dev.anatolii.gradle.cpp.android.compiler.CPCHCompiler
 import dev.anatolii.gradle.cpp.android.compiler.CppCompiler
 import dev.anatolii.gradle.cpp.android.compiler.CppPCHCompiler
 import dev.anatolii.gradle.cpp.android.compiler.GccLinker
-import dev.anatolii.gradle.cpp.android.metadata.AndroidClangMetaData
-import dev.anatolii.gradle.cpp.android.tool.NdkCommandLineToolConfiguration
-import dev.anatolii.gradle.cpp.android.tool.ToolRegistry
 import org.gradle.api.GradleException
+import org.gradle.internal.logging.text.TreeFormatter
 import org.gradle.internal.operations.BuildOperationExecutor
 import org.gradle.internal.work.WorkerLeaseService
 import org.gradle.language.base.internal.compile.Compiler
@@ -37,9 +35,12 @@ import org.gradle.nativeplatform.toolchain.internal.compilespec.CCompileSpec
 import org.gradle.nativeplatform.toolchain.internal.compilespec.CppCompileSpec
 import org.gradle.nativeplatform.toolchain.internal.compilespec.ObjectiveCCompileSpec
 import org.gradle.nativeplatform.toolchain.internal.compilespec.ObjectiveCppCompileSpec
-import org.gradle.nativeplatform.toolchain.internal.metadata.CompilerMetaDataProvider
+import org.gradle.nativeplatform.toolchain.internal.gcc.DefaultGccPlatformToolChain
+import org.gradle.nativeplatform.toolchain.internal.gcc.metadata.GccMetadata
+import org.gradle.nativeplatform.toolchain.internal.gcc.metadata.GccMetadataProvider
 import org.gradle.nativeplatform.toolchain.internal.metadata.CompilerMetadata
 import org.gradle.nativeplatform.toolchain.internal.tools.CommandLineToolSearchResult
+import org.gradle.nativeplatform.toolchain.internal.tools.GccCommandLineToolConfigurationInternal
 import org.gradle.nativeplatform.toolchain.internal.tools.ToolSearchPath
 import org.gradle.platform.base.internal.toolchain.SearchResult
 import org.gradle.process.internal.ExecActionFactory
@@ -48,13 +49,14 @@ import java.io.File
 class AndroidClangPlatformToolProvider(buildOperationExecutor: BuildOperationExecutor,
                                        targetOperatingSystem: OperatingSystemInternal,
                                        private val toolSearchPath: ToolSearchPath,
-                                       private val toolRegistry: ToolRegistry,
+                                       private val toolRegistry: DefaultGccPlatformToolChain,
                                        private val execActionFactory: ExecActionFactory,
                                        private val compilerOutputFileNamingSchemeFactory: CompilerOutputFileNamingSchemeFactory,
-                                       private val useCommandFile: Boolean,
                                        private val workerLeaseService: WorkerLeaseService,
-                                       private val metaDataProvider: CompilerMetaDataProvider<AndroidClangMetaData>
+                                       private val metaDataProvider: GccMetadataProvider
 ) : AbstractPlatformToolProvider(buildOperationExecutor, targetOperatingSystem) {
+
+    private val useCommandFile: Boolean = toolRegistry.isCanUseCommandFile
 
     companion object {
         private val LANGUAGE_FOR_COMPILER = mapOf(
@@ -82,13 +84,13 @@ class AndroidClangPlatformToolProvider(buildOperationExecutor: BuildOperationExe
                     .path
 
     override fun locateTool(compilerType: ToolType): CommandLineToolSearchResult {
-        return toolSearchPath.locate(compilerType, toolRegistry.getTool(compilerType).executable)
+        return toolSearchPath.locate(compilerType, toolRegistry.getTool(compilerType)?.executable)
     }
 
     override fun getSystemLibraries(compilerType: ToolType): SystemLibraries {
         val gccMetadata = getGccMetadata(compilerType)
         return if (gccMetadata.isAvailable) {
-            gccMetadata.component.getSystemLibraries()
+            gccMetadata.component.systemLibraries
         } else EmptySystemLibraries()
     }
 
@@ -108,11 +110,12 @@ class AndroidClangPlatformToolProvider(buildOperationExecutor: BuildOperationExe
 
     private fun <T : BinaryToolSpec> versionAwareCompiler(compiler: Compiler<T>, toolType: ToolType): VersionAwareCompiler<T> {
         val gccMetadata = getGccMetadata(toolType)
-        return VersionAwareCompiler(compiler, DefaultCompilerVersion(
-                metaDataProvider.compilerType.identifier,
-                gccMetadata.component.vendor,
-                gccMetadata.component.version)
-        )
+        return gccMetadata.takeIf { it.isAvailable }
+                ?.let {
+                    VersionAwareCompiler(compiler,
+                            DefaultCompilerVersion(metaDataProvider.compilerType.identifier, it.component.vendor, it.component.version))
+                } ?: gccMetadata.let { metadata -> TreeFormatter().also { metadata.explain(it) }.toString() }
+                .let { throw GradleException(it) }
     }
 
     override fun createCCompiler(): Compiler<CCompileSpec> {
@@ -172,16 +175,16 @@ class AndroidClangPlatformToolProvider(buildOperationExecutor: BuildOperationExe
         return Stripper(buildOperationExecutor, commandLineTool(stripper), context(stripper), workerLeaseService)
     }
 
-    private fun commandLineTool(tool: NdkCommandLineToolConfiguration): CommandLineToolInvocationWorker {
-        val key = tool.toolType
-        val exeName = tool.executable
-        return DefaultCommandLineToolInvocationWorker(key.toolName, toolSearchPath.locate(key, exeName).tool, execActionFactory)
+    private fun commandLineTool(tool: GccCommandLineToolConfigurationInternal?): CommandLineToolInvocationWorker {
+        val key = tool?.toolType
+        val exeName = tool?.executable
+        return DefaultCommandLineToolInvocationWorker(key?.toolName, toolSearchPath.locate(key, exeName).tool, execActionFactory)
     }
 
-    private fun context(toolConfiguration: NdkCommandLineToolConfiguration): CommandLineToolContext {
+    private fun context(toolConfiguration: GccCommandLineToolConfigurationInternal?): CommandLineToolContext {
         val baseInvocation = DefaultMutableCommandLineToolContext()
         baseInvocation.addPath(toolSearchPath.path)
-        baseInvocation.argAction = toolConfiguration.argAction
+        baseInvocation.argAction = toolConfiguration?.argAction
 
         val developerDir = System.getenv("DEVELOPER_DIR")
         if (developerDir != null) {
@@ -194,15 +197,17 @@ class AndroidClangPlatformToolProvider(buildOperationExecutor: BuildOperationExe
         return ".h.gch"
     }
 
-    private fun getGccMetadata(compilerType: ToolType): SearchResult<AndroidClangMetaData> {
+    private fun getGccMetadata(compilerType: ToolType): SearchResult<GccMetadata> {
         val compiler = toolRegistry.getTool(compilerType)
-        val searchResult = toolSearchPath.locate(compiler.toolType, compiler.executable)
+        val searchResult = toolSearchPath.locate(compiler?.toolType, compiler?.executable)
         val language = LANGUAGE_FOR_COMPILER[compilerType]
         val languageArgs = language?.let { listOf("-x", language) } ?: emptyList()
 
-        return metaDataProvider.getCompilerMetaData(toolSearchPath.path) {
-            executable(searchResult.tool).args(languageArgs)
-        }
+        return searchResult.takeIf { it.isAvailable }
+                ?.let {
+                    metaDataProvider.getCompilerMetaData(toolSearchPath.path) { executable(searchResult.tool).args(languageArgs) }
+                } ?: searchResult.let { result -> TreeFormatter().also { result.explain(it) }.toString() }
+                .let { throw GradleException(it) }
     }
 
 

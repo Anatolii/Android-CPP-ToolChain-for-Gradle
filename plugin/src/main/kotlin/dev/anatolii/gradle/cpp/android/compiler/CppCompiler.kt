@@ -24,7 +24,25 @@ import org.gradle.nativeplatform.toolchain.internal.CommandLineToolContext
 import org.gradle.nativeplatform.toolchain.internal.CommandLineToolInvocationWorker
 import org.gradle.nativeplatform.toolchain.internal.compilespec.CppCompileSpec
 
-internal class CppCompiler(buildOperationExecutor: BuildOperationExecutor, compilerOutputFileNamingSchemeFactory: CompilerOutputFileNamingSchemeFactory, commandLineToolInvocationWorker: CommandLineToolInvocationWorker, invocationContext: CommandLineToolContext, objectFileExtension: String, useCommandFile: Boolean, workerLeaseService: WorkerLeaseService) : AndroidCompatibleNativeCompiler<CppCompileSpec>(buildOperationExecutor, compilerOutputFileNamingSchemeFactory, commandLineToolInvocationWorker, invocationContext, CppCompileArgsTransformer(), Transformers.noOpTransformer(), objectFileExtension, useCommandFile, workerLeaseService) {
+internal class CppCompiler(
+        buildOperationExecutor: BuildOperationExecutor,
+        compilerOutputFileNamingSchemeFactory: CompilerOutputFileNamingSchemeFactory,
+        commandLineToolInvocationWorker: CommandLineToolInvocationWorker,
+        invocationContext: CommandLineToolContext,
+        objectFileExtension: String,
+        useCommandFile: Boolean,
+        workerLeaseService: WorkerLeaseService
+) : AndroidCompatibleNativeCompiler<CppCompileSpec>(
+        buildOperationExecutor,
+        compilerOutputFileNamingSchemeFactory,
+        commandLineToolInvocationWorker,
+        invocationContext,
+        CppCompileArgsTransformer(),
+        Transformers.noOpTransformer(),
+        objectFileExtension,
+        useCommandFile,
+        workerLeaseService
+) {
 
     private class CppCompileArgsTransformer : GccCompilerArgsTransformer<CppCompileSpec>("c++")
 }

@@ -6,12 +6,19 @@ jobs:
   build:
 
     runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        # java: [8, 9, 10, 11, 12]
+        java: [8, 11]
+        gradle: [ 6.0.1 ]
 
     steps:
-    - uses: actions/checkout@v1
-    - name: Set up JDK 12
-      uses: actions/setup-java@v1
-      with:
-        java-version: 12
-    - name: Build with Gradle Wrapper
-      run: ./gradlew build --stacktrace
+      - uses: actions/checkout@v1.0.0
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v1.2.0
+        with:
+          java-version: ${{ matrix.java }}
+      - name: Setup Gradle Wrapper
+        run: ./gradlew wrapper --gradle-version ${{ matrix.gradle }} --distribution-type bin
+      - name: Build Plugin
+        run: ./gradlew :plugin:build --stacktrace

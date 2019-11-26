@@ -40,13 +40,14 @@ internal abstract class GccCompilerArgsTransformer<T : NativeCompileSpec>(intern
         args.add(language)
         args.add("-c")
         if (spec.isPositionIndependentCode) {
-            args.add("-fPIC")
+            // nothing to do
+        } else {
+            args.add("-static-libstdc++")
         }
         if (spec.isDebuggable) {
-            args.add("-g")
-        }
-        if (spec.isOptimized) {
-            args.add("-O3")
+            args.addAll(listOf("-O0", "-fno-limit-debug-info"))
+        }else {
+            args.addAll(listOf("-O2", "-DNDEBUG"))
         }
     }
 
@@ -77,7 +78,7 @@ internal abstract class GccCompilerArgsTransformer<T : NativeCompileSpec>(intern
     }
 
     protected open fun needsStandardIncludes(targetPlatform: NativePlatform): Boolean {
-        return targetPlatform.operatingSystem.isMacOsX
+        return false
     }
 
 }

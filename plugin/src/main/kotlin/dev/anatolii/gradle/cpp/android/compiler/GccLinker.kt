@@ -77,7 +77,7 @@ internal class GccLinker(
             for (file in spec.libraries) {
                 args.add(file.absolutePath)
             }
-            if (!spec.libraryPath.isEmpty()) {
+            if (spec.libraryPath.isNotEmpty()) {
                 throw UnsupportedOperationException("Library Path not yet supported on GCC")
             }
 

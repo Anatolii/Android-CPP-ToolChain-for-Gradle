@@ -19,7 +19,7 @@ class GitRepository(repositoryDir: File, private val masterBranchName: String = 
             ).joinToString(separator = "-").replace(oldChar = '/', newChar = '-')
 
     private fun lastCommit(): RevCommit? {
-        return git.repository.refDatabase.refs.find { it.name == git.repository.fullBranch }?.objectId
+        return git.repository.refDatabase.refs.find { it.name == "HEAD" }?.objectId
                 ?.let { git.repository.parseCommit(it) }
     }
 
