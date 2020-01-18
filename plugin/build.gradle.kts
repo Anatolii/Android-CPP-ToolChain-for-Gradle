@@ -18,7 +18,7 @@ group = "dev.anatolii.cpp.android"
 gradlePlugin {
     plugins {
         create("androidClang") {
-            id = "dev.anatolii.cpp.android.clang"
+            id = "dev.anatolii.cpp.android.toolchain"
             implementationClass = "dev.anatolii.gradle.cpp.android.AndroidClangCompilerPlugin"
         }
     }

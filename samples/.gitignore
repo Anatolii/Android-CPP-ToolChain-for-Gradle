@@ -1,0 +1,8 @@
+local.properties
+
+# Boost
+!boost/*.kts
+!boost/*.properties
+boost/*/
+
+subProjects.list

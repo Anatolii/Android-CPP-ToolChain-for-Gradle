@@ -11,7 +11,7 @@ import org.gradle.nativeplatform.toolchain.internal.NativeCompileSpec
 import org.gradle.nativeplatform.toolchain.internal.NativeCompiler
 import java.io.File
 
-open class AndroidCompatibleNativeCompiler<T : NativeCompileSpec>(
+abstract class AndroidCompatibleNativeCompiler<T : NativeCompileSpec>(
         buildOperationExecutor: BuildOperationExecutor,
         compilerOutputFileNamingSchemeFactory: CompilerOutputFileNamingSchemeFactory,
         commandLineTool: CommandLineToolInvocationWorker,
@@ -34,7 +34,7 @@ open class AndroidCompatibleNativeCompiler<T : NativeCompileSpec>(
 ) {
 
     override fun getOutputArgs(spec: T, outputFile: File): List<String> {
-        return listOf("-o", outputFile.absolutePath)
+        return listOf("-o", outputFile.canonicalPath)
     }
 
     override fun addOptionsFileArgs(args: List<String>, tempDir: File) {
@@ -45,7 +45,7 @@ open class AndroidCompatibleNativeCompiler<T : NativeCompileSpec>(
         val pchArgs = ArrayList<String>()
         if (spec.prefixHeaderFile != null) {
             pchArgs.add("-include")
-            pchArgs.add(spec.prefixHeaderFile.absolutePath)
+            pchArgs.add(spec.prefixHeaderFile.canonicalPath)
         }
         return pchArgs
     }

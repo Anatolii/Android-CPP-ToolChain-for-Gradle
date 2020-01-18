@@ -16,6 +16,7 @@
 
 package dev.anatolii.gradle.cpp.android.compiler
 
+import dev.anatolii.gradle.cpp.android.CppLibraryAndroid
 import org.gradle.internal.Transformers
 import org.gradle.internal.operations.BuildOperationExecutor
 import org.gradle.internal.work.WorkerLeaseService
@@ -25,6 +26,7 @@ import org.gradle.nativeplatform.toolchain.internal.CommandLineToolInvocationWor
 import org.gradle.nativeplatform.toolchain.internal.compilespec.CppPCHCompileSpec
 
 class CppPCHCompiler(
+        cppLibraryAndroid: CppLibraryAndroid,
         buildOperationExecutor: BuildOperationExecutor,
         compilerOutputFileNamingSchemeFactory: CompilerOutputFileNamingSchemeFactory,
         commandLineTool: CommandLineToolInvocationWorker,
@@ -37,12 +39,13 @@ class CppPCHCompiler(
         compilerOutputFileNamingSchemeFactory,
         commandLineTool,
         invocationContext,
-        CppPCHCompileArgsTransformer(),
+        CppPCHCompileArgsTransformer(cppLibraryAndroid),
         Transformers.noOpTransformer(),
         objectFileExtension,
         useCommandFile,
         workerLeaseService
 ) {
 
-    private class CppPCHCompileArgsTransformer : GccCompilerArgsTransformer<CppPCHCompileSpec>("c++-header")
+    private class CppPCHCompileArgsTransformer(cppLibraryAndroid: CppLibraryAndroid)
+        : GccCompilerArgsTransformer<CppPCHCompileSpec>(cppLibraryAndroid,"c++-header")
 }

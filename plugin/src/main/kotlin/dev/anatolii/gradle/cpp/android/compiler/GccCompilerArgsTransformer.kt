@@ -16,15 +16,22 @@
 
 package dev.anatolii.gradle.cpp.android.compiler
 
+import dev.anatolii.gradle.cpp.android.AndroidInfo
+import dev.anatolii.gradle.cpp.android.CppLibraryAndroid
+import org.gradle.api.GradleException
 import org.gradle.nativeplatform.platform.NativePlatform
 import org.gradle.nativeplatform.toolchain.internal.ArgsTransformer
 import org.gradle.nativeplatform.toolchain.internal.MacroArgsConverter
 import org.gradle.nativeplatform.toolchain.internal.NativeCompileSpec
+import java.io.File
 
 /**
  * Maps common options for C/C++ compiling with GCC
  */
-internal abstract class GccCompilerArgsTransformer<T : NativeCompileSpec>(internal val language: String) : ArgsTransformer<T> {
+internal abstract class GccCompilerArgsTransformer<T : NativeCompileSpec>(
+        internal val cppLibraryAndroid: CppLibraryAndroid,
+        internal val language: String
+) : ArgsTransformer<T> {
 
     override fun transform(spec: T): List<String> {
         val args = mutableListOf<String>()
@@ -35,45 +42,49 @@ internal abstract class GccCompilerArgsTransformer<T : NativeCompileSpec>(intern
         return args
     }
 
-    protected fun addToolSpecificArgs(spec: T, args: MutableList<String>) {
+    private fun addToolSpecificArgs(spec: T, args: MutableList<String>) {
+        val androidInfo = AndroidInfo.fromPlatformName(spec.targetPlatform.architecture.name)
         args.add("-x")
         args.add(language)
         args.add("-c")
         if (spec.isPositionIndependentCode) {
-            // nothing to do
-        } else {
-            args.add("-static-libstdc++")
+            // nothing to do for now
         }
         if (spec.isDebuggable) {
             args.addAll(listOf("-O0", "-fno-limit-debug-info"))
-        }else {
-            args.addAll(listOf("-O2", "-DNDEBUG"))
+        } else {
+            if (androidInfo?.arch == AndroidInfo.armv7) {
+                args.add("-Oz")
+            } else {
+                args.add("-O2")
+            }
+            args.add("-DNDEBUG")
         }
     }
 
-    protected fun addIncludeArgs(spec: T, args: MutableList<String>) {
+    private fun addIncludeArgs(spec: T, args: MutableList<String>) {
         if (!needsStandardIncludes(spec.targetPlatform)) {
-            args.add("-nostdinc")
+            // nothing to include for now
         }
 
         for (file in spec.includeRoots) {
             args.add("-I")
-            args.add(file.absolutePath)
+            args.add(file.canonicalPath)
         }
 
-        for (file in spec.systemIncludeRoots) {
+        for (file in filterOutNonNDK(spec.systemIncludeRoots)) {
             args.add("-isystem")
-            args.add(file.absolutePath)
+            args.add(file.canonicalPath)
         }
     }
 
-    protected fun addMacroArgs(spec: T, args: MutableList<String>) {
+    private fun addMacroArgs(spec: T, args: MutableList<String>) {
         for (macroArg in MacroArgsConverter().transform(spec.macros)) {
             args.add("-D$macroArg")
         }
     }
 
-    protected fun addUserArgs(spec: T, args: MutableList<String>) {
+    private fun addUserArgs(spec: T, args: MutableList<String>) {
         args.addAll(spec.allArgs)
     }
 
@@ -81,4 +92,11 @@ internal abstract class GccCompilerArgsTransformer<T : NativeCompileSpec>(intern
         return false
     }
 
+    private fun filterOutNonNDK(files: List<File>): List<File> {
+        val ndkCanonicalPath = cppLibraryAndroid.ndkDir?.takeIf { it.exists() }?.canonicalPath
+                ?: throw GradleException("NDK folder must be specified and exist.")
+        return files.filter {
+            it.canonicalPath.startsWith(ndkCanonicalPath)
+        }
+    }
 }

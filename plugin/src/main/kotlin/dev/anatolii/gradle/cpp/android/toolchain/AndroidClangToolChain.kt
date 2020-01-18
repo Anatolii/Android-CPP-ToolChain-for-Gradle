@@ -11,7 +11,12 @@ import org.gradle.internal.work.WorkerLeaseService
 import org.gradle.nativeplatform.internal.CompilerOutputFileNamingSchemeFactory
 import org.gradle.nativeplatform.platform.internal.NativePlatformInternal
 import org.gradle.nativeplatform.toolchain.GccPlatformToolChain
-import org.gradle.nativeplatform.toolchain.internal.*
+import org.gradle.nativeplatform.toolchain.internal.ExtendableToolChain
+import org.gradle.nativeplatform.toolchain.internal.NativeLanguage
+import org.gradle.nativeplatform.toolchain.internal.PlatformToolProvider
+import org.gradle.nativeplatform.toolchain.internal.ToolType
+import org.gradle.nativeplatform.toolchain.internal.UnavailablePlatformToolProvider
+import org.gradle.nativeplatform.toolchain.internal.UnsupportedPlatformToolProvider
 import org.gradle.nativeplatform.toolchain.internal.gcc.DefaultGccPlatformToolChain
 import org.gradle.nativeplatform.toolchain.internal.gcc.metadata.GccMetadataProvider
 import org.gradle.nativeplatform.toolchain.internal.gcc.metadata.SystemLibraryDiscovery
@@ -114,26 +119,7 @@ open class AndroidClangToolChain(
     private fun createPlatformToolProvider(targetPlatform: NativePlatformInternal, androidInfo: AndroidInfo): PlatformToolProvider {
         val configurableToolChain = DefaultGccPlatformToolChain(targetPlatform)
 
-//        addDefaultTools(configurableToolChain)
         ndkToolchainConfig.configure(configurableToolChain, androidInfo, cppLibraryAndroid)
-//        val sysrootDir = File(llvmToolchainFile, "sysroot")
-//        configurableToolChain.tools.onEach {
-//            it.withArguments {
-//                add("-stdlib=libc++")
-//                add("--target=${androidInfo.targetPrefix}${androidInfo.api}")
-//                add("-fno-addrsig")
-//                add("-isysroot")
-//                add(sysrootDir.path)
-//                add("-isystem")
-//                add(File(sysrootDir, "usr/include").path)
-//                add("-isystem")
-//                add(File(sysrootDir, "usr/include/${androidInfo.toolsPrefix}").path)
-//                add("-isystem")
-//                add(File(sysrootDir, "usr/include/c++/v1").path)
-//                add("-isystem")
-//                add(File(llvmToolchainFile, "include/c++/4.9.x").path)
-//            }
-//        }
 
         configureActions.execute(configurableToolChain)
 
@@ -142,6 +128,7 @@ open class AndroidClangToolChain(
         return if (!result.isAvailable) {
             UnavailablePlatformToolProvider(targetPlatform.operatingSystem, result)
         } else AndroidClangPlatformToolProvider(
+                cppLibraryAndroid,
                 buildOperationExecutor,
                 targetPlatform.operatingSystem,
                 toolSearchPath,
@@ -170,14 +157,4 @@ open class AndroidClangToolChain(
             }
         }
     }
-
-//    private fun addDefaultTools(toolChain: DefaultGccPlatformToolChain) {
-//        toolChain.add(DefaultGccCommandLineToolConfiguration(ToolType.C_COMPILER, "clang"))
-//        toolChain.add(DefaultGccCommandLineToolConfiguration(ToolType.CPP_COMPILER, "clang++"))
-//        toolChain.add(DefaultGccCommandLineToolConfiguration(ToolType.LINKER, "clang++"))
-//        toolChain.add(DefaultGccCommandLineToolConfiguration(ToolType.STATIC_LIB_ARCHIVER, "ar"))
-//        toolChain.add(DefaultGccCommandLineToolConfiguration(ToolType.ASSEMBLER, "clang"))
-//        toolChain.add(DefaultGccCommandLineToolConfiguration(ToolType.SYMBOL_EXTRACTOR, "objcopy"))
-//        toolChain.add(DefaultGccCommandLineToolConfiguration(ToolType.STRIPPER, "strip"))
-//    }
 }

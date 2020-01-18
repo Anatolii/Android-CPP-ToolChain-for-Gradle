@@ -1,0 +1,205 @@
+name: Samples - Boost
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  Assemble:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2.0.0
+      - name: Set up JDK
+        uses: actions/setup-java@v1.2.0
+        with:
+          java-version: 11
+      - name: Prepare boost sample
+        working-directory: samples
+        run: gradle
+      - name: Download boost from upstream
+        working-directory: samples
+        run: gradle :boost:downloadUpstream
+      - name: Assemble ${{ matrix.module }} module
+        working-directory: samples
+        run: gradle :boost:${{ matrix.module }}:assemble --info
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [
+          multi_array,
+          smart_ptr,
+          parameter,
+          algorithm,
+          any,
+          concept_check,
+          tti,
+          functional,
+          config,
+          interprocess,
+          foreach,
+          spirit,
+          io,
+          disjoint_sets,
+          units,
+          preprocessor,
+          format,
+          xpressive,
+          integer,
+          tokenizer,
+          inspect,
+          boostbook,
+          crc,
+          logic,
+          numeric_conversion,
+          lambda,
+          mpl,
+          typeof,
+          tuple,
+          utility,
+          dynamic_bitset,
+          assign,
+          function,
+          conversion,
+          optional,
+          property_tree,
+          bimap,
+          variant,
+          array,
+          multi_index,
+          bcp,
+          ptr_container,
+          statechart,
+          static_assert,
+          range,
+          rational,
+          iterator,
+          property_map,
+          detail,
+          interval,
+          ublas,
+          type_traits,
+          compatibility,
+          bind,
+          pool,
+          proto,
+          fusion,
+          function_types,
+          intrusive,
+          asio,
+          uuid,
+          litre,
+          circular_buffer,
+          unordered,
+          signals2,
+          accumulators,
+          scope_exit,
+          flyweight,
+          icl,
+          predef,
+          polygon,
+          msm,
+          heap,
+          coroutine2,
+          ratio,
+          odeint,
+          geometry,
+          phoenix,
+          move,
+          local_function,
+          multiprecision,
+          lockfree,
+          assert,
+          align,
+          type_index,
+          core,
+          throw_exception,
+          winapi,
+          sort,
+          convert,
+          endian,
+          vmd,
+          dll,
+          compute,
+          hana,
+          metaparse,
+          qvm,
+          process,
+          poly_collection,
+          beast,
+          mp11,
+          callable_traits,
+          contract,
+          check_build,
+          container_hash,
+          hof,
+          yap,
+          safe_numerics,
+          parameter_python,
+          headers,
+          boost_install,
+          histogram,
+          variant2
+        ]
+  Quaranteened:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2.0.0
+      - name: Set up JDK
+        uses: actions/setup-java@v1.2.0
+        with:
+          java-version: 11
+      - name: Prepare boost sample
+        working-directory: samples
+        run: gradle
+      - name: Download boost from upstream
+        working-directory: samples
+        run: gradle :boost:downloadUpstream
+      - name: Assemble ${{ matrix.module }} module
+        working-directory: samples
+        run: gradle :boost:${{ matrix.module }}:assemble --info || exit 0
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [
+          system,
+          math,
+          python,
+          log,
+          exception,
+          thread,
+          timer,
+          regex,
+          random,
+          serialization,
+          test,
+          date_time,
+          graph,
+          filesystem,
+          iostreams,
+          build,
+          quickbook,
+          graph_parallel,
+          program_options,
+          wave,
+          gil,
+          mpi,
+          atomic,
+          chrono,
+          coroutine,
+          locale,
+          auto_index,
+          container,
+          context,
+          type_erasure,
+          boostdep,
+          lexical_cast,
+          fiber,
+          stacktrace,
+          outcome
+        ]

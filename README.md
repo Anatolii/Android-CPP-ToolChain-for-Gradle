@@ -17,7 +17,7 @@ The plugin is built on top of [new C++ plugins](https://blog.gradle.org/update-o
 ## Plugin ID
 
 ```text
-dev.anatolii.cpp.android.clang
+dev.anatolii.cpp.android.toolchain
 ```
 
 ## Usage example
@@ -27,7 +27,7 @@ import dev.anatolii.gradle.cpp.android.AndroidInfo
 // ...
 plugins {
     id("cpp-library")
-    id("dev.anatolii.cpp.android.clang")
+    id("dev.anatolii.cpp.android.toolchain")
 }
 // ...
 library {
@@ -39,8 +39,15 @@ library {
     targetMachines.add(machines.linux.x86_64)
 
     linkage.add(Linkage.SHARED)
+    // and / or
     linkage.add(Linkage.STATIC)
 }
 ```
 
 **NOTE**: Binaries published from Linux host will not be re-used by MacOS or Windows hosts due to current Gradle implementation for binary packages distribution. 
+
+## Samples
+
+### Boost
+
+[![Build](https://github.com/Anatolii/gradle-cpp-cross-platform/workflows/Boost/badge.svg)](https://github.com/Anatolii/gradle-cpp-cross-platform/actions)

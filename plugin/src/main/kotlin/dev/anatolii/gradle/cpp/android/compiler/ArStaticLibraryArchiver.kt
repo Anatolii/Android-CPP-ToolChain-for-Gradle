@@ -74,9 +74,9 @@ class ArStaticLibraryArchiver(buildOperationExecutor: BuildOperationExecutor, co
             // -s : Create an object file index (equivalent to running 'ranlib')
             args.add("-rcs")
             args.addAll(spec.allArgs)
-            args.add(spec.outputFile.absolutePath)
+            args.add(spec.outputFile.canonicalPath)
             for (file in spec.objectFiles) {
-                args.add(file.absolutePath)
+                args.add(file.canonicalPath)
             }
             return args
         }

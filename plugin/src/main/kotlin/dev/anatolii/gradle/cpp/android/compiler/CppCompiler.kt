@@ -16,6 +16,7 @@
 
 package dev.anatolii.gradle.cpp.android.compiler
 
+import dev.anatolii.gradle.cpp.android.CppLibraryAndroid
 import org.gradle.internal.Transformers
 import org.gradle.internal.operations.BuildOperationExecutor
 import org.gradle.internal.work.WorkerLeaseService
@@ -25,6 +26,7 @@ import org.gradle.nativeplatform.toolchain.internal.CommandLineToolInvocationWor
 import org.gradle.nativeplatform.toolchain.internal.compilespec.CppCompileSpec
 
 internal class CppCompiler(
+        cppLibraryAndroid: CppLibraryAndroid,
         buildOperationExecutor: BuildOperationExecutor,
         compilerOutputFileNamingSchemeFactory: CompilerOutputFileNamingSchemeFactory,
         commandLineToolInvocationWorker: CommandLineToolInvocationWorker,
@@ -37,12 +39,13 @@ internal class CppCompiler(
         compilerOutputFileNamingSchemeFactory,
         commandLineToolInvocationWorker,
         invocationContext,
-        CppCompileArgsTransformer(),
+        CppCompileArgsTransformer(cppLibraryAndroid),
         Transformers.noOpTransformer(),
         objectFileExtension,
         useCommandFile,
         workerLeaseService
 ) {
 
-    private class CppCompileArgsTransformer : GccCompilerArgsTransformer<CppCompileSpec>("c++")
+    private class CppCompileArgsTransformer(cppLibraryAndroid: CppLibraryAndroid)
+        : GccCompilerArgsTransformer<CppCompileSpec>(cppLibraryAndroid,"c++")
 }

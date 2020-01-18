@@ -2,7 +2,25 @@ package dev.anatolii.gradle.cpp.android
 
 import org.gradle.api.GradleException
 
-data class AndroidInfo(val api: Int, val arch: String) {
+data class AndroidInfo(private val apiInternal: Int = defaultMinApi, val arch: String) {
+
+    var minApi: Int = defaultMinApi
+        get() {
+            return when (arch) {
+                armv7 -> defaultMinApi
+                armv8 -> defaultMinApi64Bit
+                x86 -> defaultMinApi
+                x86_64 -> defaultMinApi64Bit
+                else -> defaultMinApi
+            }.let { default -> field.takeIf { it >= default } ?: default }
+        }
+    var maxApi: Int = Int.MAX_VALUE
+
+    val api: Int
+        get() = (apiInternal.takeIf { it >= minApi } ?: minApi)
+                .takeIf { it <= maxApi }
+                ?: throw Exception("Unsupported API level. Expected: [ ${minApi}..${maxApi} ] but was: $apiInternal")
+
     val sysrootAbi: String by lazy {
         when (arch) {
             armv7 -> "arm"
@@ -24,13 +42,14 @@ data class AndroidInfo(val api: Int, val arch: String) {
     }
 
     val llvmTriple: String by lazy {
-        when(arch) {
-            armv7 -> "armv7-none-linux-androideabi"
-            armv8 -> "aarch64-none-linux-android"
-            x86 -> "i686-none-linux-android"
-            x86_64 -> "x86_64-none-linux-android"
-            else -> throw GradleException("Invalid Android ABI: $arch")
-        }
+        toolchainName + api
+//        when (arch) {
+//            armv7 -> "armv7-none-linux-androideabi"
+//            armv8 -> "aarch64-none-linux-android"
+//            x86 -> "i686-none-linux-android"
+//            x86_64 -> "x86_64-none-linux-android"
+//            else -> throw GradleException("Invalid Android ABI: $arch")
+//        } + api
     }
 
     companion object {
@@ -40,6 +59,8 @@ data class AndroidInfo(val api: Int, val arch: String) {
         const val x86_64 = "x86_64"
         const val platformPrefix = "android"
         const val platformNameSeparator = "_"
+        const val defaultMinApi = 16
+        const val defaultMinApi64Bit = 21
         private const val platformNameSeparatorSecondary = ":"
         private const val splitNameSize = 3
 

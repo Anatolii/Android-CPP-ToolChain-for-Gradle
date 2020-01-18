@@ -66,16 +66,18 @@ internal class GccLinker(
             args.addAll(spec.systemArgs)
 
             if (spec is SharedLibraryLinkerSpec) {
+                setInstallName(spec, args)
                 args.add("-shared")
-                maybeSetInstallName(spec, args)
+            }else {
+                args.add("-static")
             }
             args.add("-o")
-            args.add(spec.outputFile.absolutePath)
+            args.add(spec.outputFile.canonicalPath)
             for (file in spec.objectFiles) {
-                args.add(file.absolutePath)
+                args.add(file.canonicalPath)
             }
             for (file in spec.libraries) {
-                args.add(file.absolutePath)
+                args.add(file.canonicalPath)
             }
             if (spec.libraryPath.isNotEmpty()) {
                 throw UnsupportedOperationException("Library Path not yet supported on GCC")
@@ -88,18 +90,9 @@ internal class GccLinker(
             return args
         }
 
-        private fun maybeSetInstallName(spec: SharedLibraryLinkerSpec, args: MutableList<String>) {
-            val installName = spec.installName
-            val targetOs = spec.targetPlatform.operatingSystem
-
-            if (installName == null || targetOs.isWindows) {
-                return
-            }
-            if (targetOs.isMacOsX) {
-                args.add("-Wl,-install_name,$installName")
-            } else {
-                args.add("-Wl,-soname,$installName")
-            }
+        private fun setInstallName(spec: SharedLibraryLinkerSpec, args: MutableList<String>) {
+            val installName = spec.installName ?: return
+            args.add("-Wl,-soname,$installName")
         }
     }
 }

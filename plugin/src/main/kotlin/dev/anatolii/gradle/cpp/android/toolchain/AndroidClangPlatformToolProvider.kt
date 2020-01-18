@@ -1,5 +1,6 @@
 package dev.anatolii.gradle.cpp.android.toolchain
 
+import dev.anatolii.gradle.cpp.android.CppLibraryAndroid
 import dev.anatolii.gradle.cpp.android.compiler.ArStaticLibraryArchiver
 import dev.anatolii.gradle.cpp.android.compiler.Assembler
 import dev.anatolii.gradle.cpp.android.compiler.CCompiler
@@ -46,14 +47,16 @@ import org.gradle.platform.base.internal.toolchain.SearchResult
 import org.gradle.process.internal.ExecActionFactory
 import java.io.File
 
-class AndroidClangPlatformToolProvider(buildOperationExecutor: BuildOperationExecutor,
-                                       targetOperatingSystem: OperatingSystemInternal,
-                                       private val toolSearchPath: ToolSearchPath,
-                                       private val toolRegistry: DefaultGccPlatformToolChain,
-                                       private val execActionFactory: ExecActionFactory,
-                                       private val compilerOutputFileNamingSchemeFactory: CompilerOutputFileNamingSchemeFactory,
-                                       private val workerLeaseService: WorkerLeaseService,
-                                       private val metaDataProvider: GccMetadataProvider
+class AndroidClangPlatformToolProvider(
+        private val cppLibraryAndroid: CppLibraryAndroid,
+        buildOperationExecutor: BuildOperationExecutor,
+        targetOperatingSystem: OperatingSystemInternal,
+        private val toolSearchPath: ToolSearchPath,
+        private val toolRegistry: DefaultGccPlatformToolChain,
+        private val execActionFactory: ExecActionFactory,
+        private val compilerOutputFileNamingSchemeFactory: CompilerOutputFileNamingSchemeFactory,
+        private val workerLeaseService: WorkerLeaseService,
+        private val metaDataProvider: GccMetadataProvider
 ) : AbstractPlatformToolProvider(buildOperationExecutor, targetOperatingSystem) {
 
     private val useCommandFile: Boolean = toolRegistry.isCanUseCommandFile
@@ -96,14 +99,32 @@ class AndroidClangPlatformToolProvider(buildOperationExecutor: BuildOperationExe
 
     override fun createCppCompiler(): Compiler<CppCompileSpec> {
         val cppCompilerTool = toolRegistry.getTool(ToolType.CPP_COMPILER)
-        val cppCompiler = CppCompiler(buildOperationExecutor, compilerOutputFileNamingSchemeFactory, commandLineTool(cppCompilerTool), context(cppCompilerTool), objectFileExtension, useCommandFile, workerLeaseService)
+        val cppCompiler = CppCompiler(
+                cppLibraryAndroid,
+                buildOperationExecutor,
+                compilerOutputFileNamingSchemeFactory,
+                commandLineTool(cppCompilerTool),
+                context(cppCompilerTool),
+                objectFileExtension,
+                useCommandFile,
+                workerLeaseService
+        )
         val outputCleaningCompiler = OutputCleaningCompiler(cppCompiler, compilerOutputFileNamingSchemeFactory, objectFileExtension)
         return versionAwareCompiler(outputCleaningCompiler, ToolType.CPP_COMPILER)
     }
 
     override fun createCppPCHCompiler(): Compiler<*> {
         val cppCompilerTool = toolRegistry.getTool(ToolType.CPP_COMPILER)
-        val cppPCHCompiler = CppPCHCompiler(buildOperationExecutor, compilerOutputFileNamingSchemeFactory, commandLineTool(cppCompilerTool), context(cppCompilerTool), getPCHFileExtension(), useCommandFile, workerLeaseService)
+        val cppPCHCompiler = CppPCHCompiler(
+                cppLibraryAndroid,
+                buildOperationExecutor,
+                compilerOutputFileNamingSchemeFactory,
+                commandLineTool(cppCompilerTool),
+                context(cppCompilerTool),
+                getPCHFileExtension(),
+                useCommandFile,
+                workerLeaseService
+        )
         val outputCleaningCompiler = OutputCleaningCompiler(cppPCHCompiler, compilerOutputFileNamingSchemeFactory, getPCHFileExtension())
         return versionAwareCompiler(outputCleaningCompiler, ToolType.CPP_COMPILER)
     }
@@ -120,14 +141,32 @@ class AndroidClangPlatformToolProvider(buildOperationExecutor: BuildOperationExe
 
     override fun createCCompiler(): Compiler<CCompileSpec> {
         val cCompilerTool = toolRegistry.getTool(ToolType.C_COMPILER)
-        val cCompiler = CCompiler(buildOperationExecutor, compilerOutputFileNamingSchemeFactory, commandLineTool(cCompilerTool), context(cCompilerTool), objectFileExtension, useCommandFile, workerLeaseService)
+        val cCompiler = CCompiler(
+                cppLibraryAndroid,
+                buildOperationExecutor,
+                compilerOutputFileNamingSchemeFactory,
+                commandLineTool(cCompilerTool),
+                context(cCompilerTool),
+                objectFileExtension,
+                useCommandFile,
+                workerLeaseService
+        )
         val outputCleaningCompiler = OutputCleaningCompiler(cCompiler, compilerOutputFileNamingSchemeFactory, objectFileExtension)
         return versionAwareCompiler(outputCleaningCompiler, ToolType.C_COMPILER)
     }
 
     override fun createCPCHCompiler(): Compiler<*> {
         val cCompilerTool = toolRegistry.getTool(ToolType.C_COMPILER)
-        val cpchCompiler = CPCHCompiler(buildOperationExecutor, compilerOutputFileNamingSchemeFactory, commandLineTool(cCompilerTool), context(cCompilerTool), getPCHFileExtension(), useCommandFile, workerLeaseService)
+        val cpchCompiler = CPCHCompiler(
+                cppLibraryAndroid,
+                buildOperationExecutor,
+                compilerOutputFileNamingSchemeFactory,
+                commandLineTool(cCompilerTool),
+                context(cCompilerTool),
+                getPCHFileExtension(),
+                useCommandFile,
+                workerLeaseService
+        )
         val outputCleaningCompiler = OutputCleaningCompiler(cpchCompiler, compilerOutputFileNamingSchemeFactory, getPCHFileExtension())
         return versionAwareCompiler(outputCleaningCompiler, ToolType.C_COMPILER)
     }
@@ -152,7 +191,16 @@ class AndroidClangPlatformToolProvider(buildOperationExecutor: BuildOperationExe
         val assemblerTool = toolRegistry.getTool(ToolType.ASSEMBLER)
         // Disable command line file for now because some custom assemblers
         // don't understand the same arguments as GCC.
-        return Assembler(buildOperationExecutor, compilerOutputFileNamingSchemeFactory, commandLineTool(assemblerTool), context(assemblerTool), objectFileExtension, false, workerLeaseService)
+        return Assembler(
+                cppLibraryAndroid,
+                buildOperationExecutor,
+                compilerOutputFileNamingSchemeFactory,
+                commandLineTool(assemblerTool),
+                context(assemblerTool),
+                objectFileExtension,
+                false,
+                workerLeaseService
+        )
     }
 
     override fun createLinker(): Compiler<LinkerSpec> {
@@ -209,7 +257,6 @@ class AndroidClangPlatformToolProvider(buildOperationExecutor: BuildOperationExe
                 } ?: searchResult.let { result -> TreeFormatter().also { result.explain(it) }.toString() }
                 .let { throw GradleException(it) }
     }
-
 
     override fun getCompilerMetadata(toolType: ToolType): CompilerMetadata {
         return getGccMetadata(toolType).component

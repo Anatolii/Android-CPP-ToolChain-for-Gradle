@@ -16,6 +16,7 @@
 
 package dev.anatolii.gradle.cpp.android.compiler
 
+import dev.anatolii.gradle.cpp.android.CppLibraryAndroid
 import org.gradle.internal.Transformers
 import org.gradle.internal.operations.BuildOperationExecutor
 import org.gradle.internal.work.WorkerLeaseService
@@ -26,6 +27,7 @@ import org.gradle.nativeplatform.toolchain.internal.CommandLineToolInvocationWor
 import org.gradle.nativeplatform.toolchain.internal.compilespec.AssembleSpec
 
 internal class Assembler(
+        cppLibraryAndroid: CppLibraryAndroid,
         buildOperationExecutor: BuildOperationExecutor,
         compilerOutputFileNamingSchemeFactory: CompilerOutputFileNamingSchemeFactory,
         commandLineTool: CommandLineToolInvocationWorker,
@@ -38,21 +40,22 @@ internal class Assembler(
         compilerOutputFileNamingSchemeFactory,
         commandLineTool,
         invocationContext,
-        AssemblerArgsTransformer(),
-        Transformers.noOpTransformer<AssembleSpec>(),
+        AssemblerArgsTransformer(cppLibraryAndroid),
+        Transformers.noOpTransformer(),
         objectFileExtension,
         useCommandFile,
         workerLeaseService
 ) {
 
     override fun buildPerFileArgs(genericArgs: List<String>, sourceArgs: List<String>, outputArgs: List<String>, pchArgs: List<String>?): Iterable<String> {
-        if (pchArgs != null && !pchArgs.isEmpty()) {
+        if (pchArgs != null && pchArgs.isNotEmpty()) {
             throw UnsupportedOperationException("Precompiled header arguments cannot be specified for an Assembler compiler.")
         }
         return super.buildPerFileArgs(genericArgs, sourceArgs, outputArgs, pchArgs)
     }
 
-    private class AssemblerArgsTransformer : GccCompilerArgsTransformer<AssembleSpec>("assembler") {
+    private class AssemblerArgsTransformer(cppLibraryAndroid: CppLibraryAndroid)
+        : GccCompilerArgsTransformer<AssembleSpec>(cppLibraryAndroid, "assembler") {
 
         override fun needsStandardIncludes(targetPlatform: NativePlatform): Boolean {
             return true
