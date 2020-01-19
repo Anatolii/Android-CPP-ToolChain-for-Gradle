@@ -35,7 +35,8 @@ The version will be printed among the project properties.
 
 ## Usage example
 
-**NOTE**: Binaries published from Linux host will not be re-used by MacOS or Windows hosts due to current Gradle implementation for binary packages distribution. 
+**NOTE**: In case you will setup publication to Maven repository, packages will be published for the same OS as the host they were produced from.
+While the actual `.so` or `.a` should be suitable for usual Android apps development, packages published to Maven will be tight to the host OS due to lack of support of cross-platform compilation in Gradle.
 
 It is possible to apply Android related configuration as following example shows:
 

@@ -7,6 +7,7 @@ plugins {
 }
 
 subprojects {
+    apply(plugin = "org.gradle.maven-publish")
     beforeEvaluate {
         extensions.findByType(CppLibraryAndroid::class.java)?.apply {
             apis = listOf(29)
