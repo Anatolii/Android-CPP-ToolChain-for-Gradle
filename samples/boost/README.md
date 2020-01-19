@@ -1,8 +1,10 @@
 # Boost
 
+Project source code can be found on GitHub: https://github.com/boostorg/boost
+
 [![Build](https://github.com/Anatolii/gradle-cpp-cross-platform/workflows/Boost/badge.svg)](https://github.com/Anatolii/gradle-cpp-cross-platform/actions)
 
-All commands below assume that you execute them from parent folder `samples`.
+**Note**: All commands below assume that you execute them from parent folder `samples`.
 
 ## Download upstream sources
 
@@ -12,11 +14,15 @@ In order to configure Boost example you need first to execute `downloadUpstream`
 ../gradlew :boost:downloadUpstream
 ```
 
+## Change version of Boost
+
+The version is set in [gradle.properties](gradle.properties) file.
+
 ## Compile boost modules
 
 Full list of modules can be found here: https://github.com/boostorg/boost/blob/master/.gitmodules
 
-Following command will assemble `assert` module `debug` variant of `shared` library for `Android API 29` and `arm64-v8a` architecture.
+Following command will assemble `assert` module's `debug` variant as a `shared` library for `Android API 29` and `arm64-v8a` architecture.
 
 ```shell script
 ../gradlew :boost:assert:assembleDebugSharedAndroid_29_arm64-v8a

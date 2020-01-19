@@ -1,7 +1,7 @@
 # Sample projects
 
 Samples demonstrate usage of plugin on a few open source projects.
-THe projects are downloaded from upstream repositories and used untouched.
+The projects are downloaded from upstream repositories and used untouched.
 
 All examples below will assume that you run them from current `samples` directory. 
 

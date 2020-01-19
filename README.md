@@ -35,8 +35,9 @@ The version will be printed among the project properties.
 
 ## Usage example
 
-**NOTE**: In case you will setup publication to Maven repository, packages will be published for the same OS as the host they were produced from.
-While the actual `.so` or `.a` should be suitable for usual Android apps development, packages published to Maven will be tight to the host OS due to lack of support of cross-platform compilation in Gradle.
+**NOTE**: In case publication to Maven repository is set up, packages will be published for the same OS as the host they were produced from.
+While the actual `.so` or `.a` files should be suitable for usual Android apps development,
+packages published to Maven will be tight to the host OS due to lack of cross-platform compilation support in Gradle.
 
 It is possible to apply Android related configuration as following example shows:
 
@@ -52,7 +53,7 @@ libraryAndroid {
     // Optional
     abis = listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64") // this is default value
     stl = "c++_static" // default value is "c++_shared"
-    ndkDir = File("path/to/ANdroid/NDK") // if null, then tries to find NDK in as part of SDK, or in local.properties file set as ndk.dir, or as environment variable ANDROID_NDK_HOME
+    ndkDir = File("path/to/Android/NDK") // if null, then tries to find NDK in as part of SDK, or in local.properties file set as ndk.dir, or as environment variable ANDROID_NDK_HOME
     sdkDir = File("path/to/Android/SDK") // by default tries to find SDK in local.properties file set as sdk.dir, or as environment variable ANDROID_HOME
     ndkVersion = "20.0.5594570" // specify version of NDK which you have in AndroidSDK/ndk/ folder
     isNeon = false // this is default value
@@ -65,7 +66,7 @@ libraryAndroid {
 
 You can also specify target Android machines like you would otherwise do for Linux, macOS or Windows.
 
-Use following tamplate to define architecture specifically for Android:
+Use following template to define architecture specifically for Android:
 
 ```text
 android_<api>_<abi>
@@ -97,4 +98,4 @@ library {
 
 ## Samples
 
-There are samples avaliable to demonstrate usage of this plugin. Fine out more: [samples/Radme](samples/README.md)
+There are samples available to demonstrate usage of this plugin. Read more: [samples/Readme](samples/README.md)
