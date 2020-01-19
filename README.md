@@ -1,18 +1,17 @@
-# Gradle cross-platform cpp build plugin
+# Android CPP ToolChain plugin for Gradle 
 
 ## Important information
 
 This plugin is work in progress, use it for evaluation purposes and on your own risk.
+That is why the plugin is not published on Gradle plugins repository yet.
 
 ## Description
 
 [![Build](https://github.com/Anatolii/gradle-cpp-cross-platform/workflows/Gradle%20build/badge.svg)](https://github.com/Anatolii/gradle-cpp-cross-platform/actions)
 
-Gradle plugin which enables cross-platform compilation of CPP code using new plugins for native compilation.
+Gradle plugin which enables cross-platform compilation of C/C++ code for Android targets using new plugins for native compilation.
 
-This repository contains code for Android toolchain as example.
-
-The plugin is built on top of [new C++ plugins](https://blog.gradle.org/update-on-the-new-cpp-plugins).
+The plugin is built as extension to the [new C++ plugins](https://blog.gradle.org/update-on-the-new-cpp-plugins).
 
 ## Plugin ID
 
@@ -20,21 +19,72 @@ The plugin is built on top of [new C++ plugins](https://blog.gradle.org/update-o
 dev.anatolii.cpp.android.toolchain
 ```
 
+## Publishing locally
+
+```shell script
+./gradlew :plugin:publishToMavenLocal
+```
+
+In order to find out the version which was published run following task:
+
+```shell script
+./gradlew :plugin:properties
+```
+
+The version will be printed among the project properties.
+
 ## Usage example
 
+**NOTE**: Binaries published from Linux host will not be re-used by MacOS or Windows hosts due to current Gradle implementation for binary packages distribution. 
+
+It is possible to apply Android related configuration as following example shows:
+
 ```kotlin
-import dev.anatolii.gradle.cpp.android.AndroidInfo
-// ...
+plugins {
+    id("cpp-library")
+    id("dev.anatolii.cpp.android.toolchain")
+}
+
+libraryAndroid {
+    // Required if not specified manually, like it shown on example bellow
+    apis = listOf(21, 25, 29) // default is empty list
+    // Optional
+    abis = listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64") // this is default value
+    stl = "c++_static" // default value is "c++_shared"
+    ndkDir = File("path/to/ANdroid/NDK") // if null, then tries to find NDK in as part of SDK, or in local.properties file set as ndk.dir, or as environment variable ANDROID_NDK_HOME
+    sdkDir = File("path/to/Android/SDK") // by default tries to find SDK in local.properties file set as sdk.dir, or as environment variable ANDROID_HOME
+    ndkVersion = "20.0.5594570" // specify version of NDK which you have in AndroidSDK/ndk/ folder
+    isNeon = false // this is default value
+    disableFormatStringChecks = false // this is default value
+    armMode = "thumb" // this is default value
+    forceCppFeatures = false // this is default value
+    cppFeatures = listOf("rtti", "exceptions") // default is empty list
+}
+```
+
+You can also specify target Android machines like you would otherwise do for Linux, macOS or Windows.
+
+Use following tamplate to define architecture specifically for Android:
+
+```text
+android_<api>_<abi>
+```
+
+Where 
+- `<api>` can be any supported by Android NDK 
+- `<abi>` any of `armeabi-v7a`, `arm64-v8a`, `x86`, `x86_64`
+
+The `android` prefix must be used to specify architecture of the target machine, so that CPP Android ToolChain will be able to distinguish it from other architectures for which you might be building your source code.
+
+```kotlin
 plugins {
     id("cpp-library")
     id("dev.anatolii.cpp.android.toolchain")
 }
 // ...
 library {
-    // In order to set up Android target with API 28 and ARM V8 architecture use following line, where `arch` can be one of: armv7, armv8, x86, x86_64
-    targetMachines.add(machines.linux.architecture(AndroidInfo(api = 28, arch = AndroidInfo.armv8).platformName))
     // Alternatively you can set the target architecture as string
-    targetMachines.add(machines.linux.architecture("android28_x86"))
+    targetMachines.add(machines.linux.architecture("android_28_x86"))
     // Pre-defined architectures will be configured by "cpp-library" plugin as usually.
     targetMachines.add(machines.linux.x86_64)
 
@@ -44,10 +94,6 @@ library {
 }
 ```
 
-**NOTE**: Binaries published from Linux host will not be re-used by MacOS or Windows hosts due to current Gradle implementation for binary packages distribution. 
-
 ## Samples
 
-### Boost
-
-[![Build](https://github.com/Anatolii/gradle-cpp-cross-platform/workflows/Boost/badge.svg)](https://github.com/Anatolii/gradle-cpp-cross-platform/actions)
+There are samples avaliable to demonstrate usage of this plugin. Fine out more: [samples/Radme](samples/README.md)

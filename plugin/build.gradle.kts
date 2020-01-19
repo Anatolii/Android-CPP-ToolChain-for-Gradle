@@ -2,6 +2,7 @@ plugins {
     `kotlin-dsl`
     id("java-gradle-plugin")
     id("maven-publish")
+    id("dev.anatolii.internal.git")
 }
 
 repositories {
@@ -12,13 +13,13 @@ dependencies {
     implementation(gradleApi())
 }
 
-version = GitRepository(rootDir).generateCalVer()
-group = "dev.anatolii.cpp.android"
+version = git.generateCalVer()
+group = "dev.anatolii.cpp.android.toolchain"
 
 gradlePlugin {
     plugins {
         create("androidClang") {
-            id = "dev.anatolii.cpp.android.toolchain"
+            id = project.group.toString()
             implementationClass = "dev.anatolii.gradle.cpp.android.AndroidClangCompilerPlugin"
         }
     }

@@ -42,6 +42,6 @@ internal class GccOptionsFileArgsWriter(tempDir: File) : OptionsFileArgsWriter(t
     }
 
     companion object {
-        private val CLI_ONLY_ARGS = Arrays.asList("-m32", "-m64")
+        private val CLI_ONLY_ARGS = listOf("-m32", "-m64")
     }
 }

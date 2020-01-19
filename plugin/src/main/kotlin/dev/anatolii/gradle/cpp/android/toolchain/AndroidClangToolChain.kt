@@ -4,6 +4,7 @@ import dev.anatolii.gradle.cpp.android.AndroidInfo
 import dev.anatolii.gradle.cpp.android.CppLibraryAndroid
 import dev.anatolii.gradle.cpp.android.ndk.NdkToolchainConfig
 import org.gradle.api.internal.file.FileResolver
+import org.gradle.api.logging.Logging
 import org.gradle.internal.operations.BuildOperationExecutor
 import org.gradle.internal.os.OperatingSystem
 import org.gradle.internal.service.ServiceRegistry
@@ -18,17 +19,16 @@ import org.gradle.nativeplatform.toolchain.internal.ToolType
 import org.gradle.nativeplatform.toolchain.internal.UnavailablePlatformToolProvider
 import org.gradle.nativeplatform.toolchain.internal.UnsupportedPlatformToolProvider
 import org.gradle.nativeplatform.toolchain.internal.gcc.DefaultGccPlatformToolChain
+import org.gradle.nativeplatform.toolchain.internal.gcc.metadata.GccMetadata
 import org.gradle.nativeplatform.toolchain.internal.gcc.metadata.GccMetadataProvider
-import org.gradle.nativeplatform.toolchain.internal.gcc.metadata.SystemLibraryDiscovery
-import org.gradle.nativeplatform.toolchain.internal.metadata.CompilerMetaDataProviderFactory
 import org.gradle.nativeplatform.toolchain.internal.tools.CommandLineToolSearchResult
 import org.gradle.nativeplatform.toolchain.internal.tools.GccCommandLineToolConfigurationInternal
 import org.gradle.nativeplatform.toolchain.internal.tools.ToolSearchPath
+import org.gradle.platform.base.internal.toolchain.SearchResult
 import org.gradle.platform.base.internal.toolchain.ToolChainAvailability
 import org.gradle.process.internal.ExecActionFactory
-import org.slf4j.LoggerFactory
 
-open class AndroidClangToolChain(
+open class AndroidClangToolChain @JvmOverloads constructor(
         name: String,
         private val cppLibraryAndroid: CppLibraryAndroid,
         private val serviceRegistry: ServiceRegistry,
@@ -48,16 +48,13 @@ open class AndroidClangToolChain(
     private val toolSearchPath = ToolSearchPath(operatingSystem).also {
         it.path = ndkToolchainConfig.path(operatingSystem)
     }
-    private val metaDataProviderFactory = serviceRegistry.get(CompilerMetaDataProviderFactory::class.java)
-    private val standardLibraryDiscovery = serviceRegistry.get(SystemLibraryDiscovery::class.java)
     private val metaDataProvider = GccMetadataProvider.forClang(execActionFactory)
-    private val llvmToolchainFile = ndkToolchainConfig.llvmToolchainLocation(operatingSystem)
-
+    private val platformToolProviders: MutableMap<AndroidInfo, PlatformToolProvider> = mutableMapOf()
 
     companion object {
         const val NAME = "Android Clang"
-        val platformToolProviders = mutableMapOf<AndroidInfo, PlatformToolProvider>()
-        private val LOGGER = LoggerFactory.getLogger(AndroidClangToolChain::class.java)
+        private val compilerData: MutableMap<String, SearchResult<GccMetadata>> = mutableMapOf()
+        private val logger = Logging.getLogger(AndroidClangToolChain::class.java)
     }
 
     override fun getTypeName(): String {
@@ -119,12 +116,12 @@ open class AndroidClangToolChain(
     private fun createPlatformToolProvider(targetPlatform: NativePlatformInternal, androidInfo: AndroidInfo): PlatformToolProvider {
         val configurableToolChain = DefaultGccPlatformToolChain(targetPlatform)
 
-        ndkToolchainConfig.configure(configurableToolChain, androidInfo, cppLibraryAndroid)
+        configurableToolChain.configure(ndkToolchainConfig, androidInfo)
 
         configureActions.execute(configurableToolChain)
 
         val result = ToolChainAvailability()
-        initTools(configurableToolChain)
+        initTools(configurableToolChain, result)
         return if (!result.isAvailable) {
             UnavailablePlatformToolProvider(targetPlatform.operatingSystem, result)
         } else AndroidClangPlatformToolProvider(
@@ -140,19 +137,22 @@ open class AndroidClangToolChain(
         )
     }
 
-    private fun initTools(platformToolChain: DefaultGccPlatformToolChain) {
+    private fun initTools(platformToolChain: DefaultGccPlatformToolChain, availability: ToolChainAvailability) {
         // Attempt to determine whether the compiler is the correct implementation
         for (tool in platformToolChain.compilers) {
             val compiler = locate(tool)
             if (compiler.isAvailable) {
-                val gccMetadata = metaDataProvider.getCompilerMetaData(toolSearchPath.path) {
-                    executable(compiler.tool).args(platformToolChain.getCompilerProbeArgs())
+                val gccMetadata = compilerData.getOrPut(toolSearchPath.path.joinToString { it.path }) {
+                    metaDataProvider.getCompilerMetaData(toolSearchPath.path) {
+                        executable(compiler.tool).args(platformToolChain.compilerProbeArgs)
+                    }
                 }
+                availability.mustBeAvailable(gccMetadata)
                 if (!gccMetadata.isAvailable) {
                     return
                 }
                 // Assume all the other compilers are ok, if they happen to be installed
-                LOGGER.debug("Found {} with version {}", tool.toolType.toolName, gccMetadata)
+                logger.debug("Found {} with version {}", tool.toolType.toolName, gccMetadata)
                 break
             }
         }

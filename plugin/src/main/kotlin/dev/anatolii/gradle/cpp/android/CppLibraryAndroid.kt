@@ -20,7 +20,7 @@ open class CppLibraryAndroid(private val project: Project) {
                 ?: sdkDir?.let { File(it, "ndk-bundle") }?.takeIf { it.exists() }
 
     var abis: List<String> = listOf(AndroidInfo.armv7, AndroidInfo.armv8, AndroidInfo.x86, AndroidInfo.x86_64)
-    var apis: List<Int> = listOf(21)
+    var apis: List<Int> = listOf()
     var isNeon: Boolean = false
     var stl: String = "c++_shared"
     var disableFormatStringChecks: Boolean = false

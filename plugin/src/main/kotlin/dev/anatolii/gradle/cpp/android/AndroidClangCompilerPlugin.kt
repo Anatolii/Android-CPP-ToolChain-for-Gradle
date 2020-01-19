@@ -14,7 +14,7 @@ import org.gradle.nativeplatform.toolchain.internal.NativeToolChainRegistryInter
 import javax.inject.Inject
 
 @Suppress("unused")
-open class AndroidClangCompilerPlugin @Inject constructor(
+abstract class AndroidClangCompilerPlugin @Inject constructor(
         private val serviceRegistry: ServiceRegistry,
         private val targetMachineFactory: TargetMachineFactory
 ) : Plugin<Project> {
@@ -25,15 +25,10 @@ open class AndroidClangCompilerPlugin @Inject constructor(
         project.extensions.add(CppLibraryAndroid::class.java, CppLibraryAndroid.NAME, pluginExtension)
         setupWith(project, pluginExtension)
 
-        AndroidClangToolChain.platformToolProviders.clear()
         val toolChainRegistry = project.extensions.getByType(NativeToolChainRegistry::class.java)
 
         toolChainRegistry.registerFactory(AndroidClang::class.java) { name ->
-            AndroidClangToolChain(
-                    name,
-                    pluginExtension,
-                    serviceRegistry
-            )
+            AndroidClangToolChain(name, pluginExtension, serviceRegistry)
         }
         if (toolChainRegistry is NativeToolChainRegistryInternal)
             toolChainRegistry.registerDefaultToolChain(AndroidClangToolChain.NAME, AndroidClang::class.java)
@@ -43,8 +38,8 @@ open class AndroidClangCompilerPlugin @Inject constructor(
     private fun setupWith(project: Project, cppLibraryAndroid: CppLibraryAndroid) {
         project.beforeEvaluate {
             extensions.configure(CppLibrary::class.java) {
-                cppLibraryAndroid.apis.flatMap { api ->
-                    cppLibraryAndroid.abis.map { abi -> api to abi }
+                cppLibraryAndroid.apis.distinct().flatMap { api ->
+                    cppLibraryAndroid.abis.distinct().map { abi -> api to abi }
                 }.map { (api, abi) ->
                     AndroidInfo(api, abi)
                 }.map {

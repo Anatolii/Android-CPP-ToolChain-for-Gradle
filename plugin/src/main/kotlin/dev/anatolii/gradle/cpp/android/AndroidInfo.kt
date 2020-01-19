@@ -21,16 +21,6 @@ data class AndroidInfo(private val apiInternal: Int = defaultMinApi, val arch: S
                 .takeIf { it <= maxApi }
                 ?: throw Exception("Unsupported API level. Expected: [ ${minApi}..${maxApi} ] but was: $apiInternal")
 
-    val sysrootAbi: String by lazy {
-        when (arch) {
-            armv7 -> "arm"
-            armv8 -> "arm64"
-            x86 -> x86
-            x86_64 -> x86_64
-            else -> throw GradleException("Invalid Android ABI: $arch")
-        }
-    }
-
     val toolchainName: String by lazy {
         when (arch) {
             armv7 -> "arm-linux-androideabi"
@@ -43,13 +33,6 @@ data class AndroidInfo(private val apiInternal: Int = defaultMinApi, val arch: S
 
     val llvmTriple: String by lazy {
         toolchainName + api
-//        when (arch) {
-//            armv7 -> "armv7-none-linux-androideabi"
-//            armv8 -> "aarch64-none-linux-android"
-//            x86 -> "i686-none-linux-android"
-//            x86_64 -> "x86_64-none-linux-android"
-//            else -> throw GradleException("Invalid Android ABI: $arch")
-//        } + api
     }
 
     companion object {
@@ -75,17 +58,4 @@ data class AndroidInfo(private val apiInternal: Int = defaultMinApi, val arch: S
     }
 
     val platformName: String by lazy { listOf(platformPrefix, api, arch).joinToString(separator = platformNameSeparator) }
-
-    val toolsPrefix: String by lazy {
-        ("aarch64".takeIf { arch == armv8 } ?: "arm".takeIf { arch == armv7 }
-        ?: "i686".takeIf { arch == x86 } ?: x86_64) +
-                "-linux-android" + ("eabi".takeIf { arch == armv7 } ?: "")
-    }
-
-    val targetPrefix: String by lazy {
-        ("aarch64".takeIf { arch == armv8 } ?: "armv7a".takeIf { arch == armv7 }
-        ?: "i686".takeIf { arch == x86 } ?: x86_64) +
-                "-linux-android" + ("eabi".takeIf { arch == armv7 } ?: "")
-
-    }
 }

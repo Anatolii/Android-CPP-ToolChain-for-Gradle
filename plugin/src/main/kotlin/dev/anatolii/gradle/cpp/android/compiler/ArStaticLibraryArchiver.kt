@@ -34,7 +34,19 @@ import java.util.*
 /**
  * A static library archiver based on the GNU 'ar' utility
  */
-class ArStaticLibraryArchiver(buildOperationExecutor: BuildOperationExecutor, commandLineToolInvocationWorker: CommandLineToolInvocationWorker, invocationContext: CommandLineToolContext, workerLeaseService: WorkerLeaseService) : AbstractCompiler<StaticLibraryArchiverSpec>(buildOperationExecutor, commandLineToolInvocationWorker, invocationContext, ArchiverSpecToArguments(), false, workerLeaseService) {
+class ArStaticLibraryArchiver(
+        buildOperationExecutor: BuildOperationExecutor,
+        commandLineToolInvocationWorker: CommandLineToolInvocationWorker,
+        invocationContext: CommandLineToolContext,
+        workerLeaseService: WorkerLeaseService
+) : AbstractCompiler<StaticLibraryArchiverSpec>(
+        buildOperationExecutor,
+        commandLineToolInvocationWorker,
+        invocationContext,
+        ArchiverSpecToArguments(),
+        false,
+        workerLeaseService
+) {
 
     override fun execute(spec: StaticLibraryArchiverSpec): WorkResult {
         deletePreviousOutput(spec)

@@ -59,8 +59,6 @@ class AndroidClangPlatformToolProvider(
         private val metaDataProvider: GccMetadataProvider
 ) : AbstractPlatformToolProvider(buildOperationExecutor, targetOperatingSystem) {
 
-    private val useCommandFile: Boolean = toolRegistry.isCanUseCommandFile
-
     companion object {
         private val LANGUAGE_FOR_COMPILER = mapOf(
                 ToolType.C_COMPILER to "c",
@@ -106,7 +104,7 @@ class AndroidClangPlatformToolProvider(
                 commandLineTool(cppCompilerTool),
                 context(cppCompilerTool),
                 objectFileExtension,
-                useCommandFile,
+                toolRegistry.isCanUseCommandFile,
                 workerLeaseService
         )
         val outputCleaningCompiler = OutputCleaningCompiler(cppCompiler, compilerOutputFileNamingSchemeFactory, objectFileExtension)
@@ -122,7 +120,7 @@ class AndroidClangPlatformToolProvider(
                 commandLineTool(cppCompilerTool),
                 context(cppCompilerTool),
                 getPCHFileExtension(),
-                useCommandFile,
+                toolRegistry.isCanUseCommandFile,
                 workerLeaseService
         )
         val outputCleaningCompiler = OutputCleaningCompiler(cppPCHCompiler, compilerOutputFileNamingSchemeFactory, getPCHFileExtension())
@@ -148,7 +146,7 @@ class AndroidClangPlatformToolProvider(
                 commandLineTool(cCompilerTool),
                 context(cCompilerTool),
                 objectFileExtension,
-                useCommandFile,
+                toolRegistry.isCanUseCommandFile,
                 workerLeaseService
         )
         val outputCleaningCompiler = OutputCleaningCompiler(cCompiler, compilerOutputFileNamingSchemeFactory, objectFileExtension)
@@ -164,7 +162,7 @@ class AndroidClangPlatformToolProvider(
                 commandLineTool(cCompilerTool),
                 context(cCompilerTool),
                 getPCHFileExtension(),
-                useCommandFile,
+                toolRegistry.isCanUseCommandFile,
                 workerLeaseService
         )
         val outputCleaningCompiler = OutputCleaningCompiler(cpchCompiler, compilerOutputFileNamingSchemeFactory, getPCHFileExtension())
@@ -205,7 +203,7 @@ class AndroidClangPlatformToolProvider(
 
     override fun createLinker(): Compiler<LinkerSpec> {
         val linkerTool = toolRegistry.getTool(ToolType.LINKER)
-        return versionAwareCompiler(GccLinker(buildOperationExecutor, commandLineTool(linkerTool), context(linkerTool), useCommandFile, workerLeaseService), ToolType.LINKER)
+        return versionAwareCompiler(GccLinker(buildOperationExecutor, commandLineTool(linkerTool), context(linkerTool), toolRegistry.isCanUseCommandFile, workerLeaseService), ToolType.LINKER)
     }
 
     override fun createStaticLibraryArchiver(): Compiler<StaticLibraryArchiverSpec> {

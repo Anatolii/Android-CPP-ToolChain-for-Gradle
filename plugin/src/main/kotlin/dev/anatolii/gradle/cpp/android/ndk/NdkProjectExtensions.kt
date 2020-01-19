@@ -18,11 +18,9 @@ fun Project.findSdkDirectory(): File? = findInLocalProperties(sdkDirPropertyName
 
 private fun Project.findInLocalProperties(property: String): File? = File(rootDir, localPropertiesFileName)
         .takeIf { it.exists() && it.isFile }
-        ?.let { it.bufferedReader() }
-        ?.let { reader ->
-            Properties()
-                    .also { it.load(reader) }
-                    .also { reader.close() }
+        ?.bufferedReader()
+        ?.use { reader ->
+            Properties().also { it.load(reader) }
         }?.getProperty(property)
         ?.let { File(it) }
         ?.takeIf { it.exists() }

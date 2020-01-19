@@ -1,3 +1,5 @@
+package dev.anatolii.internal
+
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.revwalk.RevCommit
 import java.io.File
@@ -5,16 +7,17 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 
-class GitRepository(repositoryDir: File, private val masterBranchName: String = "master") {
+abstract class GitRepository @JvmOverloads constructor(repositoryDir: File, private val mainlineBranchName: String = "master") {
     private val git: Git = Git.open(repositoryDir)
 
     protected fun finalize() {
         git.close()
     }
 
+    @Suppress("unused")
     fun generateCalVer(): String =
             listOfNotNull(
-                    git.repository.branch.takeIf { isOnMasterBranch().not() },
+                    git.repository.branch.takeUnless { isOnMasterBranch() },
                     lastCommitTimestamp()?.fullPaddedDateTime()
             ).joinToString(separator = "-").replace(oldChar = '/', newChar = '-')
 
@@ -30,7 +33,7 @@ class GitRepository(repositoryDir: File, private val masterBranchName: String = 
     }
 
 
-    private fun isOnMasterBranch() = git.repository.branch == masterBranchName
+    private fun isOnMasterBranch() = git.repository.branch == mainlineBranchName
 }
 
 
