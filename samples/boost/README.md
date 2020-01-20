@@ -6,6 +6,17 @@ Project source code can be found on GitHub: https://github.com/boostorg/boost
 
 **Note**: All commands below assume that you execute them from parent folder `samples`.
 
+## Initial setup
+
+In case you use only command line tools to explore this project, you need first to execute Gradle build without any tasks specified.
+This way required Boost modules description will be downloaded and so rest of the project could be configured.
+
+```shell script
+../gradlew
+```
+
+If you opened Samples project in IDE (from the `samples` folder as root) then all necessary preparation should be done for you. In all other cases you should follow instruction above.
+
 ## Download upstream sources
 
 In order to configure Boost example you need first to execute `downloadUpstream` task for `boost` project.
