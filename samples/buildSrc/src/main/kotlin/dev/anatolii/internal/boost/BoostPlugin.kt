@@ -50,7 +50,7 @@ open class BoostPlugin : Plugin<Project> {
 
     private fun setupWithUpstreamSources(subProject: Project) {
         upstreamSources(subProject)
-                ?: subProject.logger.lifecycle("Run downloadUpstream task to fetch source code of ${subProject.name}")
+                ?: subProject.logger.lifecycle("Run ${subProject.name}:downloadUpstream task to fetch source code of ${subProject.name}")
         applyCppLibrary(subProject)
         val dependenciesFromCMakeFile = CMake.dependenciesFromCMakeFile(subProject, upstreamSources(subProject))
         val dependencies = dependenciesFromCMakeFile + customDependencies(subProject)
