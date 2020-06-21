@@ -3,10 +3,10 @@ name: Samples - Boost
 on:
   push:
     branches:
-      - master
+      - mainline
   pull_request:
     branches:
-      - master
+      - mainline
 
 jobs:
   Assemble:

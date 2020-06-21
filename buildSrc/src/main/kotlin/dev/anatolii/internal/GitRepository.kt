@@ -7,7 +7,7 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 
-abstract class GitRepository @JvmOverloads constructor(repositoryDir: File, private val mainlineBranchName: String = "master") {
+abstract class GitRepository @JvmOverloads constructor(repositoryDir: File, private val mainlineBranchName: String = "mainline") {
     private val git: Git = Git.open(repositoryDir)
 
     protected fun finalize() {
