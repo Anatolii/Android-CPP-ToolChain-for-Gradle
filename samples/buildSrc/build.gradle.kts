@@ -8,14 +8,18 @@ plugins {
 }
 
 dependencies {
-    implementation("de.undercouch:gradle-download-task:4.0.2")
+    implementation("de.undercouch:gradle-download-task:4.0.4")
 }
 
 gradlePlugin {
     plugins {
-        create("boost") {
+        val boost by creating {
             id = "dev.anatolii.internal.boost"
-            implementationClass = "dev.anatolii.internal.boost.BoostPlugin"
+            implementationClass = "dev.anatolii.internal.plugin.boost.BoostPlugin"
+        }
+        val upstream by creating {
+            id = "dev.anatolii.internal.upstream"
+            implementationClass = "dev.anatolii.internal.plugin.upstream.UpstreamSources"
         }
     }
 }

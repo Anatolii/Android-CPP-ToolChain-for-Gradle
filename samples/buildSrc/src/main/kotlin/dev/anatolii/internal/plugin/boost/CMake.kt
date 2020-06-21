@@ -1,4 +1,4 @@
-package dev.anatolii.internal.boost
+package dev.anatolii.internal.plugin.boost
 
 import org.gradle.api.Project
 import java.io.File

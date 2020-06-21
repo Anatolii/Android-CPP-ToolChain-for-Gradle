@@ -1,14 +1,15 @@
-package dev.anatolii.internal.boost
+package dev.anatolii.internal.plugin.boost
 
-import de.undercouch.gradle.tasks.download.Download
 import de.undercouch.gradle.tasks.download.DownloadAction
 import dev.anatolii.internal.DummyCpp
+import dev.anatolii.internal.plugin.upstream.UpstreamExtension
+import dev.anatolii.internal.plugin.upstream.UpstreamSources
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.tasks.Copy
 import org.gradle.kotlin.dsl.configure
 import org.gradle.language.cpp.CppLibrary
 import java.io.File
+import java.net.URL
 
 open class BoostPlugin : Plugin<Project> {
 
@@ -76,7 +77,8 @@ open class BoostPlugin : Plugin<Project> {
         return mapOf(
                 "container_hash" to setOf("assert", "config", "core", "detail", "integer", "static_assert", "type_traits"),
                 "function_types" to setOf("config", "core", "detail", "mpl", "preprocessor", "type_traits"),
-                "io" to setOf("config")
+                "io" to setOf("config"),
+                "locale" to setOf("config")
         ).let {
             it[project.name]
         } ?: emptySet()
@@ -133,37 +135,12 @@ open class BoostPlugin : Plugin<Project> {
     }
 
     private fun registerTasksToDownloadUpstreamSources(subProject: Project) {
-        val upstreamDir = upstreamDir(subProject)
-        val zipFromRemote = subProject.file("${upstreamDir}/${subProject.name}.zip")
-        zipFromRemote.parentFile.takeUnless { it.exists() }?.mkdirs()
-
-        val downloadZipTask = subProject.tasks.register("downloadUpstreamZip", Download::class.java) {
-            subProject.parent?.name?.also { group = it }
-            onlyIf {
-                upstreamDir.exists().not() || (upstreamDir.list()?.isEmpty() ?: true)
-            }
-            src("https://github.com/boostorg/${subProject.name}/archive/boost-${project.version}.zip")
-            dest(zipFromRemote)
-            overwrite(false)
-        }
-
-        val unzipTask = subProject.tasks.register("unzipUpstream", Copy::class.java) {
-            onlyIf { zipFromRemote.exists() }
-            dependsOn(downloadZipTask)
-            from(subProject.zipTree(zipFromRemote))
-            into(upstreamDir)
-        }
-
-        val downloadTask = subProject.tasks.register("downloadUpstream") {
-            group = subProject.parent?.name
-            dependsOn(unzipTask)
-            doLast {
-                zipFromRemote.takeIf { it.exists() }?.delete()
-            }
-        }
-        subProject.parent?.tasks?.maybeCreate(downloadTask.name)?.apply {
-            dependsOn(downloadTask)
-            group = subProject.parent?.name
+        subProject.pluginManager.apply(UpstreamSources::class.java)
+        val upstreamExtension = subProject.extensions.getByType(UpstreamExtension::class.java)
+        upstreamExtension.apply {
+            extractDir = upstreamDir(subProject)
+            projectFamilyName = "boost"
+            sourcesZipUrl = URL("https://github.com/boostorg/${subProject.name}/archive/boost-${subProject.version}.zip")
         }
     }
 

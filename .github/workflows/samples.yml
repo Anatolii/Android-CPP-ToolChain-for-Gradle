@@ -18,18 +18,18 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 11
-      - name: Prepare boost sample
+      - name: Prepare samples
         working-directory: samples
         run: gradle
-      - name: Download boost from upstream
+      - name: Download upstream source code
         working-directory: samples
-        run: gradle :boost:downloadUpstream
+        run: gradle :downloadUpstream
       - name: List all tasks which will run
         working-directory: samples
-        run: gradle :boost:assembleAllCompatibleModules -m
+        run: gradle :assembleAllCompatibleModules -m
       - name: Assemble all passing modules
         working-directory: samples
-        run: gradle --info :boost:assembleAllCompatibleModules
+        run: gradle --info :assembleAllCompatibleModules
   Quaranteened:
     runs-on: ubuntu-18.04
     steps:
@@ -39,15 +39,15 @@ jobs:
         uses: actions/setup-java@v1.2.0
         with:
           java-version: 11
-      - name: Prepare boost sample
+      - name: Prepare samples
         working-directory: samples
         run: gradle
-      - name: Download boost from upstream
+      - name: Download upstream source code
         working-directory: samples
-        run: gradle :boost:downloadUpstream
+        run: gradle :downloadUpstream
       - name: List all tasks which will run
         working-directory: samples
-        run: gradle :boost:assembleAllQuarantinedModules -m
+        run: gradle :assembleAllQuarantinedModules -m
       - name: Assemble all quarantined modules
         working-directory: samples
-        run: gradle --info --continue :boost:assembleAllQuarantinedModules || exit 0
+        run: gradle --info --continue :assembleAllQuarantinedModules || exit 0

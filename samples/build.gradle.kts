@@ -28,3 +28,10 @@ subprojects {
         }
     }
 }
+
+tasks.register("assembleAllCompatibleModules") {
+    dependsOn(":boost:${name}")
+}
+tasks.register("assembleAllQuarantinedModules") {
+    dependsOn(":boost:${name}")
+}
