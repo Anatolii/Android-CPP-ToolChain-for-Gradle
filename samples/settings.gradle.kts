@@ -11,6 +11,8 @@ mapOf(
 
 }
 
+include(":icu")
+
 rootProject.children.onEach {
     it.projectDir.takeUnless { file -> file.exists() }?.mkdirs()
 }

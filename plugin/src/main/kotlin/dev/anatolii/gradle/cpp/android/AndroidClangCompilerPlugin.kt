@@ -21,9 +21,8 @@ abstract class AndroidClangCompilerPlugin @Inject constructor(
 
     override fun apply(project: Project) {
         project.pluginManager.apply(NativeComponentPlugin::class.java)
-        val pluginExtension = CppLibraryAndroid(project)
-        project.extensions.add(CppLibraryAndroid::class.java, CppLibraryAndroid.NAME, pluginExtension)
-        setupWith(project, pluginExtension)
+        val pluginExtension = project.extensions.create(CppLibraryAndroid.NAME, CppLibraryAndroid::class.java, project)
+        setupWith(project)
 
         val toolChainRegistry = project.extensions.getByType(NativeToolChainRegistry::class.java)
 
@@ -35,21 +34,18 @@ abstract class AndroidClangCompilerPlugin @Inject constructor(
         else toolChainRegistry.register(AndroidClangToolChain.NAME, AndroidClang::class.java)
     }
 
-    private fun setupWith(project: Project, cppLibraryAndroid: CppLibraryAndroid) {
-        project.beforeEvaluate {
-            extensions.configure(CppLibrary::class.java) {
-                cppLibraryAndroid.apis.distinct().flatMap { api ->
-                    cppLibraryAndroid.abis.distinct().map { abi -> api to abi }
-                }.map { (api, abi) ->
-                    AndroidInfo(api, abi)
-                }.map {
-                    targetMachineFactory
-                            .os(DefaultNativePlatform.getCurrentOperatingSystem().toFamilyName())
-                            .architecture(it.platformName)
-                }.forEach {
-                    targetMachines.add(it)
-                }
-            }
+    private fun setupWith(project: Project) {
+        project.pluginManager.withPlugin("cpp-library") {
+            project.extensions.getByType(CppLibraryAndroid::class.java)
+                    .androidInfos.all {
+                        targetMachineFactory
+                                .os(DefaultNativePlatform.getCurrentOperatingSystem().toFamilyName())
+                                .architecture(name)
+                                .let {
+                                    project.extensions.getByType(CppLibrary::class.java).targetMachines.add(it)
+                                }
+                    }
+
         }
     }
 }

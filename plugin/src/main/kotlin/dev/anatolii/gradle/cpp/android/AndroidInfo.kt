@@ -57,5 +57,5 @@ data class AndroidInfo(private val apiInternal: Int = defaultMinApi, val arch: S
         }?.let { AndroidInfo(it[1].toInt(), it[2]) }
     }
 
-    val platformName: String by lazy { listOf(platformPrefix, api, arch).joinToString(separator = platformNameSeparator) }
+    val name: String by lazy { listOf(platformPrefix, api, arch).joinToString(separator = platformNameSeparator) }
 }

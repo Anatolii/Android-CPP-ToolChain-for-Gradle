@@ -8,11 +8,13 @@ plugins {
 
 subprojects {
     apply(plugin = "org.gradle.maven-publish")
-    beforeEvaluate {
-        extensions.findByType(CppLibraryAndroid::class.java)?.apply {
+    pluginManager.withPlugin("dev.anatolii.cpp.android.toolchain") {
+        extensions.getByType(CppLibraryAndroid::class.java).apply {
             apis = listOf(29)
         }
-        extensions.findByType(CppLibrary::class.java)?.apply {
+    }
+    pluginManager.withPlugin("cpp-library") {
+        extensions.getByType(CppLibrary::class.java).apply {
             linkage.addAll(SHARED, STATIC)
         }
         tasks.withType(AbstractNativeCompileTask::class.java).configureEach {
@@ -31,6 +33,7 @@ subprojects {
 
 tasks.register("assembleAllCompatibleModules") {
     dependsOn(":boost:${name}")
+    dependsOn(":icu:assemble")
 }
 tasks.register("assembleAllQuarantinedModules") {
     dependsOn(":boost:${name}")

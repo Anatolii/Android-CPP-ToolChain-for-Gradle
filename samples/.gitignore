@@ -4,5 +4,10 @@ local.properties
 !boost/*.kts
 !boost/*.properties
 boost/*/
+boost/subProjects.list
 
-subProjects.list
+# ICU
+!icu/*.kts
+!icu/*.properties
+icu/*/
+
