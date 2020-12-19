@@ -1,13 +1,7 @@
 package dev.anatolii.gradle.cpp.android.toolchain
 
 import dev.anatolii.gradle.cpp.android.CppLibraryAndroid
-import dev.anatolii.gradle.cpp.android.compiler.ArStaticLibraryArchiver
-import dev.anatolii.gradle.cpp.android.compiler.Assembler
-import dev.anatolii.gradle.cpp.android.compiler.CCompiler
-import dev.anatolii.gradle.cpp.android.compiler.CPCHCompiler
-import dev.anatolii.gradle.cpp.android.compiler.CppCompiler
-import dev.anatolii.gradle.cpp.android.compiler.CppPCHCompiler
-import dev.anatolii.gradle.cpp.android.compiler.GccLinker
+import dev.anatolii.gradle.cpp.android.compiler.*
 import org.gradle.api.GradleException
 import org.gradle.internal.logging.text.TreeFormatter
 import org.gradle.internal.operations.BuildOperationExecutor
@@ -20,22 +14,8 @@ import org.gradle.nativeplatform.internal.CompilerOutputFileNamingSchemeFactory
 import org.gradle.nativeplatform.internal.LinkerSpec
 import org.gradle.nativeplatform.internal.StaticLibraryArchiverSpec
 import org.gradle.nativeplatform.platform.internal.OperatingSystemInternal
-import org.gradle.nativeplatform.toolchain.internal.AbstractPlatformToolProvider
-import org.gradle.nativeplatform.toolchain.internal.CommandLineToolContext
-import org.gradle.nativeplatform.toolchain.internal.CommandLineToolInvocationWorker
-import org.gradle.nativeplatform.toolchain.internal.DefaultCommandLineToolInvocationWorker
-import org.gradle.nativeplatform.toolchain.internal.DefaultMutableCommandLineToolContext
-import org.gradle.nativeplatform.toolchain.internal.EmptySystemLibraries
-import org.gradle.nativeplatform.toolchain.internal.OutputCleaningCompiler
-import org.gradle.nativeplatform.toolchain.internal.Stripper
-import org.gradle.nativeplatform.toolchain.internal.SymbolExtractor
-import org.gradle.nativeplatform.toolchain.internal.SystemLibraries
-import org.gradle.nativeplatform.toolchain.internal.ToolType
-import org.gradle.nativeplatform.toolchain.internal.compilespec.AssembleSpec
-import org.gradle.nativeplatform.toolchain.internal.compilespec.CCompileSpec
-import org.gradle.nativeplatform.toolchain.internal.compilespec.CppCompileSpec
-import org.gradle.nativeplatform.toolchain.internal.compilespec.ObjectiveCCompileSpec
-import org.gradle.nativeplatform.toolchain.internal.compilespec.ObjectiveCppCompileSpec
+import org.gradle.nativeplatform.toolchain.internal.*
+import org.gradle.nativeplatform.toolchain.internal.compilespec.*
 import org.gradle.nativeplatform.toolchain.internal.gcc.DefaultGccPlatformToolChain
 import org.gradle.nativeplatform.toolchain.internal.gcc.metadata.GccMetadata
 import org.gradle.nativeplatform.toolchain.internal.gcc.metadata.GccMetadataProvider
@@ -48,30 +28,30 @@ import org.gradle.process.internal.ExecActionFactory
 import java.io.File
 
 class AndroidClangPlatformToolProvider(
-        private val cppLibraryAndroid: CppLibraryAndroid,
-        buildOperationExecutor: BuildOperationExecutor,
-        targetOperatingSystem: OperatingSystemInternal,
-        private val toolSearchPath: ToolSearchPath,
-        private val toolRegistry: DefaultGccPlatformToolChain,
-        private val execActionFactory: ExecActionFactory,
-        private val compilerOutputFileNamingSchemeFactory: CompilerOutputFileNamingSchemeFactory,
-        private val workerLeaseService: WorkerLeaseService,
-        private val metaDataProvider: GccMetadataProvider
+    private val cppLibraryAndroid: CppLibraryAndroid,
+    buildOperationExecutor: BuildOperationExecutor,
+    targetOperatingSystem: OperatingSystemInternal,
+    private val toolSearchPath: ToolSearchPath,
+    private val toolRegistry: DefaultGccPlatformToolChain,
+    private val execActionFactory: ExecActionFactory,
+    private val compilerOutputFileNamingSchemeFactory: CompilerOutputFileNamingSchemeFactory,
+    private val workerLeaseService: WorkerLeaseService,
+    private val metaDataProvider: GccMetadataProvider
 ) : AbstractPlatformToolProvider(buildOperationExecutor, targetOperatingSystem) {
 
     companion object {
         private val LANGUAGE_FOR_COMPILER = mapOf(
-                ToolType.C_COMPILER to "c",
-                ToolType.CPP_COMPILER to "c++"
+            ToolType.C_COMPILER to "c",
+            ToolType.CPP_COMPILER to "c++"
         )
     }
 
     override fun getExecutableName(executablePath: String): String = executablePath
 
     override fun getSharedLibraryName(libraryPath: String): String =
-            File(super.getSharedLibraryName(libraryPath))
-                    .let { File(it.parentFile, "${it.nameWithoutExtension}.so") }
-                    .path
+        File(super.getSharedLibraryName(libraryPath))
+            .let { File(it.parentFile, "${it.nameWithoutExtension}.so") }
+            .path
 
     override fun getObjectFileExtension(): String = ".o"
 
@@ -80,9 +60,9 @@ class AndroidClangPlatformToolProvider(
     }
 
     override fun getStaticLibraryName(libraryPath: String): String =
-            File(super.getStaticLibraryName(libraryPath))
-                    .let { File(it.parentFile, "${it.nameWithoutExtension}.a") }
-                    .path
+        File(super.getStaticLibraryName(libraryPath))
+            .let { File(it.parentFile, "${it.nameWithoutExtension}.a") }
+            .path
 
     override fun locateTool(compilerType: ToolType): CommandLineToolSearchResult {
         return toolSearchPath.locate(compilerType, toolRegistry.getTool(compilerType)?.executable)
@@ -98,74 +78,87 @@ class AndroidClangPlatformToolProvider(
     override fun createCppCompiler(): Compiler<CppCompileSpec> {
         val cppCompilerTool = toolRegistry.getTool(ToolType.CPP_COMPILER)
         val cppCompiler = CppCompiler(
-                cppLibraryAndroid,
-                buildOperationExecutor,
-                compilerOutputFileNamingSchemeFactory,
-                commandLineTool(cppCompilerTool),
-                context(cppCompilerTool),
-                objectFileExtension,
-                toolRegistry.isCanUseCommandFile,
-                workerLeaseService
+            cppLibraryAndroid,
+            buildOperationExecutor,
+            compilerOutputFileNamingSchemeFactory,
+            commandLineTool(cppCompilerTool),
+            context(cppCompilerTool),
+            objectFileExtension,
+            toolRegistry.isCanUseCommandFile,
+            workerLeaseService
         )
-        val outputCleaningCompiler = OutputCleaningCompiler(cppCompiler, compilerOutputFileNamingSchemeFactory, objectFileExtension)
+        val outputCleaningCompiler =
+            OutputCleaningCompiler(cppCompiler, compilerOutputFileNamingSchemeFactory, objectFileExtension)
         return versionAwareCompiler(outputCleaningCompiler, ToolType.CPP_COMPILER)
     }
 
     override fun createCppPCHCompiler(): Compiler<*> {
         val cppCompilerTool = toolRegistry.getTool(ToolType.CPP_COMPILER)
         val cppPCHCompiler = CppPCHCompiler(
-                cppLibraryAndroid,
-                buildOperationExecutor,
-                compilerOutputFileNamingSchemeFactory,
-                commandLineTool(cppCompilerTool),
-                context(cppCompilerTool),
-                getPCHFileExtension(),
-                toolRegistry.isCanUseCommandFile,
-                workerLeaseService
+            cppLibraryAndroid,
+            buildOperationExecutor,
+            compilerOutputFileNamingSchemeFactory,
+            commandLineTool(cppCompilerTool),
+            context(cppCompilerTool),
+            getPCHFileExtension(),
+            toolRegistry.isCanUseCommandFile,
+            workerLeaseService
         )
-        val outputCleaningCompiler = OutputCleaningCompiler(cppPCHCompiler, compilerOutputFileNamingSchemeFactory, getPCHFileExtension())
+        val outputCleaningCompiler =
+            OutputCleaningCompiler(cppPCHCompiler, compilerOutputFileNamingSchemeFactory, getPCHFileExtension())
         return versionAwareCompiler(outputCleaningCompiler, ToolType.CPP_COMPILER)
     }
 
-    private fun <T : BinaryToolSpec> versionAwareCompiler(compiler: Compiler<T>, toolType: ToolType): VersionAwareCompiler<T> {
+    private fun <T : BinaryToolSpec> versionAwareCompiler(
+        compiler: Compiler<T>,
+        toolType: ToolType
+    ): VersionAwareCompiler<T> {
         val gccMetadata = getGccMetadata(toolType)
         return gccMetadata.takeIf { it.isAvailable }
-                ?.let {
-                    VersionAwareCompiler(compiler,
-                            DefaultCompilerVersion(metaDataProvider.compilerType.identifier, it.component.vendor, it.component.version))
-                } ?: gccMetadata.let { metadata -> TreeFormatter().also { metadata.explain(it) }.toString() }
-                .let { throw GradleException(it) }
+            ?.let {
+                VersionAwareCompiler(
+                    compiler,
+                    DefaultCompilerVersion(
+                        metaDataProvider.compilerType.identifier,
+                        it.component.vendor,
+                        it.component.version
+                    )
+                )
+            } ?: gccMetadata.let { metadata -> TreeFormatter().also { metadata.explain(it) }.toString() }
+            .let { throw GradleException(it) }
     }
 
     override fun createCCompiler(): Compiler<CCompileSpec> {
         val cCompilerTool = toolRegistry.getTool(ToolType.C_COMPILER)
         val cCompiler = CCompiler(
-                cppLibraryAndroid,
-                buildOperationExecutor,
-                compilerOutputFileNamingSchemeFactory,
-                commandLineTool(cCompilerTool),
-                context(cCompilerTool),
-                objectFileExtension,
-                toolRegistry.isCanUseCommandFile,
-                workerLeaseService
+            cppLibraryAndroid,
+            buildOperationExecutor,
+            compilerOutputFileNamingSchemeFactory,
+            commandLineTool(cCompilerTool),
+            context(cCompilerTool),
+            objectFileExtension,
+            toolRegistry.isCanUseCommandFile,
+            workerLeaseService
         )
-        val outputCleaningCompiler = OutputCleaningCompiler(cCompiler, compilerOutputFileNamingSchemeFactory, objectFileExtension)
+        val outputCleaningCompiler =
+            OutputCleaningCompiler(cCompiler, compilerOutputFileNamingSchemeFactory, objectFileExtension)
         return versionAwareCompiler(outputCleaningCompiler, ToolType.C_COMPILER)
     }
 
     override fun createCPCHCompiler(): Compiler<*> {
         val cCompilerTool = toolRegistry.getTool(ToolType.C_COMPILER)
         val cpchCompiler = CPCHCompiler(
-                cppLibraryAndroid,
-                buildOperationExecutor,
-                compilerOutputFileNamingSchemeFactory,
-                commandLineTool(cCompilerTool),
-                context(cCompilerTool),
-                getPCHFileExtension(),
-                toolRegistry.isCanUseCommandFile,
-                workerLeaseService
+            cppLibraryAndroid,
+            buildOperationExecutor,
+            compilerOutputFileNamingSchemeFactory,
+            commandLineTool(cCompilerTool),
+            context(cCompilerTool),
+            getPCHFileExtension(),
+            toolRegistry.isCanUseCommandFile,
+            workerLeaseService
         )
-        val outputCleaningCompiler = OutputCleaningCompiler(cpchCompiler, compilerOutputFileNamingSchemeFactory, getPCHFileExtension())
+        val outputCleaningCompiler =
+            OutputCleaningCompiler(cpchCompiler, compilerOutputFileNamingSchemeFactory, getPCHFileExtension())
         return versionAwareCompiler(outputCleaningCompiler, ToolType.C_COMPILER)
     }
 
@@ -190,30 +183,48 @@ class AndroidClangPlatformToolProvider(
         // Disable command line file for now because some custom assemblers
         // don't understand the same arguments as GCC.
         return Assembler(
-                cppLibraryAndroid,
-                buildOperationExecutor,
-                compilerOutputFileNamingSchemeFactory,
-                commandLineTool(assemblerTool),
-                context(assemblerTool),
-                objectFileExtension,
-                false,
-                workerLeaseService
+            cppLibraryAndroid,
+            buildOperationExecutor,
+            compilerOutputFileNamingSchemeFactory,
+            commandLineTool(assemblerTool),
+            context(assemblerTool),
+            objectFileExtension,
+            false,
+            workerLeaseService
         )
     }
 
     override fun createLinker(): Compiler<LinkerSpec> {
         val linkerTool = toolRegistry.getTool(ToolType.LINKER)
-        return versionAwareCompiler(GccLinker(buildOperationExecutor, commandLineTool(linkerTool), context(linkerTool), toolRegistry.isCanUseCommandFile, workerLeaseService), ToolType.LINKER)
+        return versionAwareCompiler(
+            GccLinker(
+                buildOperationExecutor,
+                commandLineTool(linkerTool),
+                context(linkerTool),
+                toolRegistry.isCanUseCommandFile,
+                workerLeaseService
+            ), ToolType.LINKER
+        )
     }
 
     override fun createStaticLibraryArchiver(): Compiler<StaticLibraryArchiverSpec> {
         val staticLibArchiverTool = toolRegistry.getTool(ToolType.STATIC_LIB_ARCHIVER)
-        return ArStaticLibraryArchiver(buildOperationExecutor, commandLineTool(staticLibArchiverTool), context(staticLibArchiverTool), workerLeaseService)
+        return ArStaticLibraryArchiver(
+            buildOperationExecutor,
+            commandLineTool(staticLibArchiverTool),
+            context(staticLibArchiverTool),
+            workerLeaseService
+        )
     }
 
     override fun createSymbolExtractor(): Compiler<*> {
         val symbolExtractor = toolRegistry.getTool(ToolType.SYMBOL_EXTRACTOR)
-        return SymbolExtractor(buildOperationExecutor, commandLineTool(symbolExtractor), context(symbolExtractor), workerLeaseService)
+        return SymbolExtractor(
+            buildOperationExecutor,
+            commandLineTool(symbolExtractor),
+            context(symbolExtractor),
+            workerLeaseService
+        )
     }
 
     override fun createStripper(): Compiler<*> {
@@ -222,9 +233,15 @@ class AndroidClangPlatformToolProvider(
     }
 
     private fun commandLineTool(tool: GccCommandLineToolConfigurationInternal?): CommandLineToolInvocationWorker {
-        val key = tool?.toolType
-        val exeName = tool?.executable
-        return DefaultCommandLineToolInvocationWorker(key?.toolName, toolSearchPath.locate(key, exeName).tool, execActionFactory)
+        return tool?.let {
+            val toolType = it.toolType
+            val exeName = it.executable
+            DefaultCommandLineToolInvocationWorker(
+                toolType.toolName,
+                toolSearchPath.locate(toolType, exeName).tool,
+                execActionFactory
+            )
+        } ?: throw Exception("Commandline tool configuration is null. Could not create the command line tool invocation worker.")
     }
 
     private fun context(toolConfiguration: GccCommandLineToolConfigurationInternal?): CommandLineToolContext {
@@ -250,10 +267,14 @@ class AndroidClangPlatformToolProvider(
         val languageArgs = language?.let { listOf("-x", language) } ?: emptyList()
 
         return searchResult.takeIf { it.isAvailable }
-                ?.let {
-                    metaDataProvider.getCompilerMetaData(toolSearchPath.path) { executable(searchResult.tool).args(languageArgs) }
-                } ?: searchResult.let { result -> TreeFormatter().also { result.explain(it) }.toString() }
-                .let { throw GradleException(it) }
+            ?.let {
+                metaDataProvider.getCompilerMetaData(toolSearchPath.path) {
+                    executable(searchResult.tool).args(
+                        languageArgs
+                    )
+                }
+            } ?: searchResult.let { result -> TreeFormatter().also { result.explain(it) }.toString() }
+            .let { throw GradleException(it) }
     }
 
     override fun getCompilerMetadata(toolType: ToolType): CompilerMetadata {

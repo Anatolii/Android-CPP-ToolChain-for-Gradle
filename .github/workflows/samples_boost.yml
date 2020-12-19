@@ -10,7 +10,7 @@ on:
 
 jobs:
   Assemble:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -31,12 +31,12 @@ jobs:
         working-directory: samples
         run: gradle --info :boost:assembleAllCompatibleModules
   Quaranteened:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v2.0.0
+        uses: actions/checkout@v2
       - name: Set up JDK
-        uses: actions/setup-java@v1.2.0
+        uses: actions/setup-java@v1
         with:
           java-version: 11
       - name: Prepare boost sample
