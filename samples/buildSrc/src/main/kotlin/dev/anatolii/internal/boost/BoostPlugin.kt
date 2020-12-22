@@ -33,13 +33,13 @@ open class BoostPlugin : Plugin<Project> {
     }
 
     private fun downloadGitModulesFile(project: Project, destination: File) =
-            DownloadAction(project).apply {
-                src("https://raw.githubusercontent.com/boostorg/boost/boost-${project.version}/.gitmodules")
-                dest(destination)
-                overwrite(false)
-            }.also {
-                it.execute()
-            }
+        DownloadAction(project).apply {
+            src("https://raw.githubusercontent.com/boostorg/boost/boost-${project.version}/.gitmodules")
+            dest(destination)
+            overwrite(false)
+        }.also {
+            it.execute()
+        }
 
     private fun configureChildProjects(project: Project) {
         project.childProjects.forEach { (_, subProject) ->
@@ -50,7 +50,7 @@ open class BoostPlugin : Plugin<Project> {
 
     private fun setupWithUpstreamSources(subProject: Project) {
         upstreamSources(subProject)
-                ?: subProject.logger.lifecycle("Run ${subProject.name}:downloadUpstream task to fetch source code of ${subProject.name}")
+            ?: subProject.logger.lifecycle("Run ${subProject.name}:downloadUpstream task to fetch source code of ${subProject.name}")
         applyCppLibrary(subProject)
         val dependenciesFromCMakeFile = CMake.dependenciesFromCMakeFile(subProject, upstreamSources(subProject))
         val dependencies = dependenciesFromCMakeFile + customDependencies(subProject)
@@ -66,17 +66,18 @@ open class BoostPlugin : Plugin<Project> {
             }
         }.map { nestedProject ->
             CMake.dependenciesFromCMakeFile(nestedProject, upstreamSources(nestedProject))
-                    .let { nestedProjectDependencies ->
-                        nestedProjectDependencies + nestedDependencies(nestedProject, nestedProjectDependencies)
-                    }
+                .let { nestedProjectDependencies ->
+                    nestedProjectDependencies + nestedDependencies(nestedProject, nestedProjectDependencies)
+                }
         }.flatten().toSet()
     }
 
     private fun customDependencies(project: Project): Set<String> {
         return mapOf(
-                "container_hash" to setOf("assert", "config", "core", "detail", "integer", "static_assert", "type_traits"),
-                "function_types" to setOf("config", "core", "detail", "mpl", "preprocessor", "type_traits"),
-                "io" to setOf("config")
+            "container_hash" to setOf("assert", "config", "core", "detail", "integer", "static_assert", "type_traits"),
+            "function_types" to setOf("config", "core", "detail", "mpl", "preprocessor", "type_traits"),
+            "io" to setOf("config"),
+            "json" to setOf("align", "assert", "config", "container", "exception", "system", "throw_exception", "utility")
         ).let {
             it[project.name]
         } ?: emptySet()
@@ -100,11 +101,11 @@ open class BoostPlugin : Plugin<Project> {
 
         if (subProject.name != "compatibility") {
             subProject.extensions.getByType(CppLibrary::class.java)
-                    .binaries.configureEach {
-                subProject.parent?.findProject(":boost:compatibility")?.let {
-                    File(upstreamSources(it), "include/boost/compatibility/cpp_c_headers")
-                }?.let { compileTask.orNull?.compilerArgs?.addAll(listOf("-I", "$it")) }
-            }
+                .binaries.configureEach {
+                    subProject.parent?.findProject(":boost:compatibility")?.let {
+                        File(upstreamSources(it), "include/boost/compatibility/cpp_c_headers")
+                    }?.let { compileTask.orNull?.compilerArgs?.addAll(listOf("-I", "$it")) }
+                }
         }
 
         setupHeadersOnlyLibrary(subProject, sources)
@@ -113,22 +114,22 @@ open class BoostPlugin : Plugin<Project> {
 
     private fun setupHeadersOnlyLibrary(project: Project, upstreamSources: File) {
         project.file("${upstreamSources}/src")
-                .takeUnless { it.exists() }
-                ?.apply {
-                    val generateTask = DummyCpp.registerSourceGenerationTask(project)
-                    project.extensions.configure<CppLibrary> {
-                        source.from(generateTask.flatMap { it.outputFile })
-                    }
+            .takeUnless { it.exists() }
+            ?.apply {
+                val generateTask = DummyCpp.registerSourceGenerationTask(project)
+                project.extensions.configure<CppLibrary> {
+                    source.from(generateTask.flatMap { it.outputFile })
                 }
+            }
     }
 
     private fun applyDependencies(project: Project, dependencies: Set<String>?) {
         dependencies?.forEach { dependency ->
             project.parent?.childProjects?.filterKeys { it == dependency }
-                    ?.values?.forEach {
-                project.extensions.findByType(CppLibrary::class.java)
+                ?.values?.forEach {
+                    project.extensions.findByType(CppLibrary::class.java)
                         ?.dependencies?.implementation(it)
-            }
+                }
         }
     }
 
@@ -148,6 +149,7 @@ open class BoostPlugin : Plugin<Project> {
         }
 
         val unzipTask = subProject.tasks.register("unzipUpstream", Copy::class.java) {
+            subProject.parent?.name?.also { group = it }
             onlyIf { zipFromRemote.exists() }
             dependsOn(downloadZipTask)
             from(subProject.zipTree(zipFromRemote))
@@ -168,11 +170,11 @@ open class BoostPlugin : Plugin<Project> {
     }
 
     private fun upstreamSources(subProject: Project): File? =
-            subProject.file("${upstreamDir(subProject)}/${subProject.name}-boost-${subProject.version}")
-                    .takeIf { it.exists() }
+        subProject.file("${upstreamDir(subProject)}/${subProject.name}-boost-${subProject.version}")
+            .takeIf { it.exists() }
 
     private fun upstreamDir(subProject: Project) =
-            File(subProject.projectDir, "upstream/${subProject.version}")
+        File(subProject.projectDir, "upstream/${subProject.version}")
 
     companion object {
 
@@ -181,11 +183,11 @@ open class BoostPlugin : Plugin<Project> {
 
         private fun writeListOfSubProjects(project: Project, gitModulesFile: File) {
             gitModulesFile.readLines()
-                    .filter { it.contains("submodule ", ignoreCase = true) }
-                    .map { it.substringAfter('"') }
-                    .map { it.substringBefore('"') }
-                    .joinToString(separator = "\n")
-                    .let { project.file(boostSubProjectsListPath).writeText(it) }
+                .filter { it.contains("submodule ", ignoreCase = true) }
+                .map { it.substringAfter('"') }
+                .map { it.substringBefore('"') }
+                .joinToString(separator = "\n")
+                .let { project.file(boostSubProjectsListPath).writeText(it) }
 
         }
     }
